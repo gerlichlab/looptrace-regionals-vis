@@ -1,0 +1,13 @@
+name: looptrace-regionals-vis
+contributions:
+  commands:
+  - id: looptrace-regionals-vis.read_looptrace_regional_points
+    title: Read looptrace regional barcode points data
+    python_name: looptrace_regionals_vis.reader:get_reader
+  readers:
+  - command: looptrace-regionals-vis.read_looptrace_regional_points
+    filename_patterns:
+    - '*_rois.csv' # raw, unlabeled, unfiltered
+    - '*_rois.proximity_labeled.csv'
+    - '*_rois.proximity_filtered.nuclei_labeled.csv'
+    accepts_directories: false
