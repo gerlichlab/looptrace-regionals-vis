@@ -25,12 +25,12 @@ class ProcessingStep(Enum):
 class ProcessingStatus(Enum):
     """The processing steps undergone by data in a file or in memory"""
 
-    Unfiltered = []
-    ProximityOnly = [ProcessingStep.ProximityLabeled]
-    ProximityAndNuclei = [
+    Unfiltered = tuple()
+    ProximityOnly = (ProcessingStep.ProximityLabeled,)
+    ProximityAndNuclei = (
         ProcessingStep.ProximityFiltered,
         ProcessingStep.NucleiLabeled,
-    ]
+    )
 
     @classmethod
     def from_filename(cls, fn: str) -> Optional["ProcessingStatus"]:
@@ -42,7 +42,7 @@ class ProcessingStatus(Enum):
         if chunks[-1] != "csv":
             logging.debug(f"No CSV extension on filename '{fn}'")
             return None
-        steps = [ProcessingStep.from_string(c) for c in chunks[1:-1]]
+        steps = tuple(ProcessingStep.from_string(c) for c in chunks[1:-1])
         for member in cls:
             if member.value == steps:
                 return member

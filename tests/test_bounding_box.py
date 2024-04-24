@@ -163,7 +163,7 @@ def test_diff_between_max_and_center_is_nonnegative_for_all_dimensions(box, dimn
 @hyp.given(box=gen_bbox_legit(min_z=-50, max_z=50))
 @hyp.settings(max_examples=1000)  # Bump up example count here since the logic is tricky.
 def test_iter_z_slices__always_designates_zero_or_one_z_slice_as_central(box):
-    is_center_flags: list[bool] = [is_center for _, _, is_center in box.iter_z_slices()]
+    is_center_flags: list[bool] = [is_center for _, _, _, _, is_center in box.iter_z_slices()]
     num_central_exp = 0 if round(box.center.z) > box.get_z_max() else 1
     num_central_obs = sum(is_center_flags)
     assert (
@@ -173,13 +173,19 @@ def test_iter_z_slices__always_designates_zero_or_one_z_slice_as_central(box):
 
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=5))  # smaller z range here for efficiency
 def test_iter_z_slices__maintains_box_coordinates(box):
-    for i, (upper_left, lower_right, _) in enumerate(box.iter_z_slices()):
+    for i, (q1, q2, q3, q4, _) in enumerate(box.iter_z_slices()):
         assert (
-            upper_left.x == box.x_min and upper_left.y == box.y_min
-        ), f"Bad top-left point ({upper_left}) in {i}-th z-slice, from box {box}"
+            q1.x == box.x_max and q1.y == box.y_min
+        ), f"Bad top-left point ({q1}) in {i}-th z-slice, from box {box}"
         assert (
-            lower_right.x == box.x_max and lower_right.y == box.y_max
-        ), f"Bad bottom-right point ({lower_right}) in {i}-th z-slice, from box {box}"
+            q2.x == box.x_min and q2.y == box.y_min
+        ), f"Bad top-left point ({q2}) in {i}-th z-slice, from box {box}"
+        assert (
+            q3.x == box.x_min and q3.y == box.y_max
+        ), f"Bad top-left point ({q3}) in {i}-th z-slice, from box {box}"
+        assert (
+            q4.x == box.x_max and q4.y == box.y_max
+        ), f"Bad bottom-right point ({q4}) in {i}-th z-slice, from box {box}"
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-50, max_z=50))

@@ -125,10 +125,12 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
         # Avoid repeated computation of the rounded value.
         object.__setattr__(self, "_nearest_z_slice", round(self.center.z))
 
-    def iter_z_slices(self) -> Iterable[tuple[Point3D, Point3D, bool]]:
+    def iter_z_slices(self) -> Iterable[tuple[Point3D, Point3D, Point3D, Point3D, bool]]:
         """Stack (1 slice per z) corner points with flag indicating if the slice corresponds to center in z."""
         for z in range(floor(self.z_min), floor(self.z_max) + 1):
-            upper_left = Point3D(z=float(z), y=self.y_min, x=self.x_min)
-            lower_right = Point3D(z=float(z), y=self.y_max, x=self.x_max)
+            q1 = Point3D(z=float(z), y=self.y_min, x=self.x_max)
+            q2 = Point3D(z=float(z), y=self.y_min, x=self.x_min)
+            q3 = Point3D(z=float(z), y=self.y_max, x=self.x_min)
+            q4 = Point3D(z=float(z), y=self.y_max, x=self.x_max)
             is_center = z == self._nearest_z_slice
-            yield upper_left, lower_right, is_center
+            yield q1, q2, q3, q4, is_center

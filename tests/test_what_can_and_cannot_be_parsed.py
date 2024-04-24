@@ -1,49 +1,48 @@
 """Validation of what this plugin will or will not attempt to parse"""
 
+import itertools
+import shutil
 from pathlib import Path
-import string
-
-import hypothesis as hyp
-from hypothesis import strategies as st
 import pytest
 
-from looptrace_regionals_vis import find_package_files
+from looptrace_regionals_vis import get_package_examples_folder, list_package_example_files
 from looptrace_regionals_vis.reader import get_reader
+
+
+EXAMPLE_FILES = list_package_example_files()
 
 
 def test_cannot_read_list_of_files():
     assert (
-        get_reader(find_package_files()) is None
+        get_reader(EXAMPLE_FILES) is None
     ), "Expected inability to parse list of filepaths, but got non-null reader!"
 
 
 @pytest.mark.parametrize("wrap", (str, Path))
-@pytest.mark.parametrize("filepath", find_package_files("examples"))
-def test_would_read_each_package_example(wrap, filepath):
-    arg = wrap(filepath)
+def test_would_read_collectivity_of_package_examples(wrap):
+    folder = wrap(get_package_examples_folder())
     assert callable(
-        get_reader(arg)
-    ), f"Expected a callable reader for path {arg} but didn't get one!"
+        get_reader(folder)
+    ), f"Expected a callable reader for path {folder} but didn't get one!"
 
 
-@pytest.mark.parametrize("prep_arg", [str, Path])
-@pytest.mark.parametrize("make_file", [False, True])
-@hyp.given(filename_prefix=st.text(alphabet=string.ascii_letters + string.digits + "_-"))
-@hyp.settings(suppress_health_check=(hyp.HealthCheck.function_scoped_fixture,))
-def test_readability_depends_on_proper_extension(
-    tmp_path, make_file, prep_arg, filename_prefix, proc_status_inference_params
-):
-    fn = (
-        filename_prefix
-        + proc_status_inference_params.suffix
-        + proc_status_inference_params.extension
-    )
-    fp = tmp_path / fn
-    if make_file:
-        fp.touch()
-    arg = prep_arg(fp)
-    observed = get_reader(arg)
-    if make_file and proc_status_inference_params.expectation is not None:
-        assert callable(observed), f"Expected callable reader for path {fp} but didn't get one!"
-    else:
-        assert observed is None, f"Expected null reader but got non-null!"
+@pytest.mark.parametrize("wrap", (str, Path))
+@pytest.mark.parametrize(
+    "what_to_copy",
+    [
+        combo
+        for k in range(len(list_package_example_files()))
+        for combo in itertools.combinations(EXAMPLE_FILES, k)
+    ],
+)
+def test_would_not_read_package_examples_if_not_existing(tmp_path, wrap, what_to_copy):
+    for filepath in what_to_copy:
+        shutil.copy(filepath, tmp_path)
+    num_temp_files = sum(1 for _ in tmp_path.iterdir())
+    assert num_temp_files == len(
+        what_to_copy
+    ), f"Was copying {len(what_to_copy)} file(s), but test case tempdir now has {num_temp_files}"
+    arg = wrap(tmp_path)
+    assert (
+        get_reader(arg) is None
+    ), f"Expected inability to parse list of filepaths, but got non-null reader for {arg}!"

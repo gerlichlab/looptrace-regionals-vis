@@ -7,7 +7,7 @@ contributions:
   readers:
   - command: looptrace-regionals-vis.read_looptrace_regional_points
     filename_patterns:
-    - '*_rois.csv' # raw, unlabeled, unfiltered
+    - '*_rois.csv'
     - '*_rois.proximity_labeled.csv'
     - '*_rois.proximity_filtered.nuclei_labeled.csv'
-    accepts_directories: false
+    accepts_directories: true

@@ -1,5 +1,6 @@
 """Tools for creating the reader of regional points data"""
 
+from collections import Counter
 from collections.abc import Callable
 import dataclasses
 import logging
@@ -19,7 +20,7 @@ LayerParams = dict[str, object]
 FullDataLayer = tuple[list[Point3D], LayerParams, Literal["shapes"]]
 PathLike = str | Path
 PathOrPaths = PathLike | list[PathLike]
-Reader = Callable[[PathOrPaths], FullDataLayer]
+Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
 
 SHAPE_PARAMS_KEY = "shape_type"
@@ -43,33 +44,60 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
     if not isinstance(path, Path):
         do_not_parse(f"Can only parse Path, not {type(path).__name__}")
         return None
-    if not path.is_file():
-        do_not_parse("Path to parse must exist as file.")
+    if not path.is_dir():
+        do_not_parse("Path to parse must exist as directory.")
         return None
 
-    # Determine the kind of data we're working with.
-    data_kind = ProcessingStatus.from_filepath(path)
-    if data_kind is None:
-        do_not_parse("Cannot infer kind of data from file: {path}")
+    # See if the contents of the folder have 1 of each kind of data.
+    count_by_kind = Counter(
+        ProcessingStatus.from_filepath(f)
+        for f in path.iterdir()
+        if f.is_file() and f.suffix == ".csv"
+    )
+    if any(count_by_kind.get(status, 0) != 1 for status in ProcessingStatus):
+        do_not_parse(
+            f"Count of file by data kind doesn't support reading from {path}: {count_by_kind}"
+        )
         return None
 
     # Create the parser.
-    def build_layer(p) -> FullDataLayer:
-        boxes = parse_boxes(p)
-        corners: list[list[list[float]]] = []
-        shapes: list[str] = []
-        for box in boxes:
-            for topleft, bottomright, is_center_slice in box.iter_z_slices():
-                corners.append([point_to_list(topleft), point_to_list(bottomright)])
-                shapes.append("rectangle" if is_center_slice else "ellipse")
-        params: dict[str, object] = {
-            "shape_type": shapes,
-            "face_color": "transparent",
-            COLOR_PARAMS_KEY: get_data_color(data_kind),
-        }
-        return corners, params, "shapes"
+    def build_layers(folder) -> list[FullDataLayer]:
+        # Map (uniquely!) each data kind/status to a file to parse.
+        file_by_kind: dict[ProcessingStatus, Path] = {}
+        for fp in Path(folder).iterdir():
+            if not (fp.is_file() and fp.suffix == ".csv"):
+                continue
+            kind = ProcessingStatus.from_filepath(fp)
+            if kind is None:
+                continue
+            if kind in file_by_kind:
+                raise KeyError(f"Data kind {kind} already found in {folder}: {file_by_kind[kind]}")
+            file_by_kind[kind] = fp
+        if set(file_by_kind.keys()) != set(ProcessingStatus):
+            raise ValueError(f"Not all processing statuses found in folder: {folder}")
 
-    return build_layer
+        layers: list[FullDataLayer] = []
+
+        for status in ProcessingStatus:
+            fp = file_by_kind[status]
+            boxes = parse_boxes(fp)
+            corners: list[list[list[float]]] = []
+            shapes: list[str] = []
+            for box in boxes:
+                for q1, q2, q3, q4, is_center_slice in box.iter_z_slices():
+                    corners.append([point_to_list(pt) for pt in [q1, q2, q3, q4]])
+                    shapes.append("rectangle" if is_center_slice else "ellipse")
+            params: dict[str, object] = {
+                "name": fp.stem,
+                "shape_type": shapes,
+                "face_color": "transparent",
+                COLOR_PARAMS_KEY: get_data_color(status),
+            }
+            layers.append((corners, params, "shapes"))
+
+        return layers
+
+    return build_layers
 
 
 @doc(
@@ -105,7 +133,7 @@ def parse_boxes(path: Path) -> list[BoundingBox3D]:
 @doc(
     summary="Flatten point coordinates to list",
     parameters=dict(pt="Point to flatten"),
-    returns="[z, y, x]"
+    returns="[z, y, x]",
 )
 def point_to_list(pt: Point3D) -> list[FloatLike]:
     return [pt.z, pt.y, pt.x]
