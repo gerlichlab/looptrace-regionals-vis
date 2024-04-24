@@ -1,21 +1,20 @@
 """Tools for creating the reader of regional points data"""
 
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 import dataclasses
 import logging
 from pathlib import Path
-from typing import Literal, Mapping, Optional
+from typing import Literal, Optional
 
 from numpydoc_decorator import doc
 import pandas as pd
 
 from .bounding_box import BoundingBox3D
-from .colors import INDIGO, PALE_SKY_BLUE, PALE_RED_CLAY
 from .point import FloatLike, Point3D
 from .processing import ProcessingStatus
+from .types import MappingLike
 
-MappingLike = Mapping[str, object] | pd.Series
 LayerParams = dict[str, object]
 FullDataLayer = tuple[list[Point3D], LayerParams, Literal["shapes"]]
 PathLike = str | Path
@@ -25,6 +24,7 @@ Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
 SHAPE_PARAMS_KEY = "shape_type"
 COLOR_PARAMS_KEY = "edge_color"
+BOX_CENTER_COLUMN_NAMES = ["zc", "yc", "xc"]
 
 
 @doc(
@@ -80,18 +80,26 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 
         for status in ProcessingStatus:
             fp = file_by_kind[status]
-            boxes = parse_boxes(fp)
+            logging.debug("Processing data for status %s: %s", status.name, fp)
+            inferred_status, boxes = parse_boxes(fp)
+            if inferred_status != status:  # This should never happen
+                raise RuntimeError(
+                    f"Had decided status {status} for file {fp}, but then got {inferred_status}"
+                )
             corners: list[list[list[float]]] = []
             shapes: list[str] = []
             for box in boxes:
+                if box is None:
+                    continue
                 for q1, q2, q3, q4, is_center_slice in box.iter_z_slices():
                     corners.append([point_to_list(pt) for pt in [q1, q2, q3, q4]])
                     shapes.append("rectangle" if is_center_slice else "ellipse")
+            logging.debug("Point count for status %s: %d", status.name, len(corners))
             params: dict[str, object] = {
                 "name": fp.stem,
                 "shape_type": shapes,
                 "face_color": "transparent",
-                COLOR_PARAMS_KEY: get_data_color(status),
+                COLOR_PARAMS_KEY: status.color,
             }
             layers.append((corners, params, "shapes"))
 
@@ -101,33 +109,20 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 
 
 @doc(
-    summary="Get the color to use for the edge of a bounding region.",
-    parameters=dict(status="The data processing status for which to get color"),
-    raises=dict(ValueError="If the given status doesn't match one of the known values"),
-    returns="The color to use for the edge of a bounding region",
-)
-def get_data_color(status: ProcessingStatus):
-    if status == ProcessingStatus.Unfiltered:
-        return INDIGO
-    if status == ProcessingStatus.ProximityOnly:
-        return PALE_SKY_BLUE
-    if status == ProcessingStatus.ProximityAndNuclei:
-        return PALE_RED_CLAY
-    raise ValueError(f"Could not resolve color for data status!")
-
-
-@doc(
     summary="Read the data from the given file and parse it into bounding boxes.",
     parameters=dict(path="Path to data file from which to parse bounding boxes"),
-    returns="A list of bounding boxes, one per record in the given file",
+    raises=dict(ValueError="If data kind/status can't be inferred from given path"),
+    returns="The inferred data kind/status, and a list of bounding boxes, one per record in the given file",
 )
-def parse_boxes(path: Path) -> list[BoundingBox3D]:
-    """Read the bounding boxes (and centroids) from given file."""
-    pt_cols = ["zc", "yc", "xc"]
+def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[Optional[BoundingBox3D]]]:
+    status = ProcessingStatus.from_filepath(path)
+    if status is None:
+        raise ValueError(f"Could not infer data kind/status from path: {path}")
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    df = pd.read_csv(path, usecols=pt_cols + box_cols)
-    boxes = df.apply(lambda row: BoundingBox3D.from_flat_arguments(**row), axis=1)
-    return boxes.to_list()
+    if status.special_column is not None:
+        box_cols.append(status.special_column)
+    spot_data = pd.read_csv(path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols)
+    return status, [status.record_to_box(record) for _, record in spot_data.iterrows()]
 
 
 @doc(
