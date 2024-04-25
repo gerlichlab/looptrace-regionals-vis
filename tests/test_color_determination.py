@@ -1,6 +1,4 @@
 import pytest
-import hypothesis as hyp
-from hypothesis import strategies as st
 
 from looptrace_regionals_vis.colors import INDIGO, PALE_RED_CLAY, PALE_SKY_BLUE
 from looptrace_regionals_vis.processing import ProcessingStatus
