@@ -13,7 +13,6 @@ import pandas as pd
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .processing import ProcessingStatus
-from .types import MappingLike
 
 LayerParams = dict[str, object]
 FullDataLayer = tuple[list[Point3D], LayerParams, Literal["shapes"]]
@@ -73,18 +72,15 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
             if kind in file_by_kind:
                 raise KeyError(f"Data kind {kind} already found in {folder}: {file_by_kind[kind]}")
             file_by_kind[kind] = fp
-        if set(file_by_kind.keys()) != set(ProcessingStatus):
-            raise ValueError(f"Not all processing statuses found in folder: {folder}")
 
         layers: list[FullDataLayer] = []
 
-        for status in ProcessingStatus:
-            fp = file_by_kind[status]
+        for status, fp in file_by_kind.items():
             logging.debug("Processing data for status %s: %s", status.name, fp)
             inferred_status, boxes = parse_boxes(fp)
             if inferred_status != status:  # This should never happen
                 raise RuntimeError(
-                    f"Had decided status {status} for file {fp}, but then got {inferred_status}"
+                    f"File {fp} had been deemed {status} but then was parsed as {inferred_status}"
                 )
             corners: list[list[list[float]]] = []
             shapes: list[str] = []
@@ -119,8 +115,6 @@ def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[Optional[BoundingBox
     if status is None:
         raise ValueError(f"Could not infer data kind/status from path: {path}")
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    if status.special_column is not None:
-        box_cols.append(status.special_column)
     spot_data = pd.read_csv(path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols)
     return status, [status.record_to_box(record) for _, record in spot_data.iterrows()]
 

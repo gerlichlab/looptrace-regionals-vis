@@ -15,8 +15,8 @@ def test_shapes_are_as_expected():
 def test_colors_are_as_expected():
     exp_color_by_name = {
         "P0001_rois": INDIGO,
-        "P0001_rois.proximity_labeled": PALE_SKY_BLUE,
-        "P0001_rois.proximity_filtered.nuclei_labeled": PALE_RED_CLAY,
+        "P0001_rois.proximity_filtered": PALE_SKY_BLUE,
+        "P0001_rois.proximity_filtered.nuclei_filtered": PALE_RED_CLAY,
     }
     params: list[LayerParams] = determine_parameters(get_package_examples_folder())
     obs_color_by_name = {p["name"]: p[COLOR_PARAMS_KEY] for p in params}

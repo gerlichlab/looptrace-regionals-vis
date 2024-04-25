@@ -8,8 +8,8 @@ from looptrace_regionals_vis.processing import ProcessingStatus
     ("status", "expected_color"),
     [
         (ProcessingStatus.Unfiltered, INDIGO),
-        (ProcessingStatus.ProximityOnly, PALE_SKY_BLUE),
-        (ProcessingStatus.ProximityAndNuclei, PALE_RED_CLAY),
+        (ProcessingStatus.ProximityFiltered, PALE_SKY_BLUE),
+        (ProcessingStatus.ProximityAndNucleiFiltered, PALE_RED_CLAY),
     ],
 )
 def test_colors_are_as_expected(status, expected_color):

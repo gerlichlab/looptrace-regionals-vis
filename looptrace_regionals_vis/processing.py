@@ -16,15 +16,23 @@ from .types import MappingLike
 class ProcessingStep(Enum):
     """Status of processing of data in a file or in memory"""
 
-    NucleiLabeled = "nuclei_labeled"
-    ProximityFiltered = "proximity_filtered"
-    ProximityLabeled = "proximity_labeled"
+    NucleiFiltration = "nuclei_filtration"
+    ProximityFiltration = "proximity_filtration"
+
+    @property
+    def filename_extension(self) -> str:
+        """Get the representation of this step in a filename extension."""
+        if self == self.__class__.NucleiFiltration:
+            return "nuclei_filtered"
+        if self == self.__class__.ProximityFiltration:
+            return "proximity_filtered"
+        raise ValueError(f"Unsupported processing step: {self}")
 
     @classmethod
     def from_string(cls, s: str) -> Optional["ProcessingStep"]:
         """Attempt to parse given string as a processing step."""
         for member in cls:
-            if s == member.name or s == member.value:
+            if s == member.name or s == member.value or s == member.filename_extension:
                 return member
         return None
 
@@ -33,32 +41,20 @@ class ProcessingStatus(Enum):
     """The processing steps undergone by data in a file or in memory"""
 
     Unfiltered = tuple()
-    ProximityOnly = (ProcessingStep.ProximityLabeled,)
-    ProximityAndNuclei = (
-        ProcessingStep.ProximityFiltered,
-        ProcessingStep.NucleiLabeled,
+    ProximityFiltered = (ProcessingStep.ProximityFiltration,)
+    ProximityAndNucleiFiltered = (
+        ProcessingStep.ProximityFiltration,
+        ProcessingStep.NucleiFiltration,
     )
-
-    @property
-    def special_column(self) -> Optional[str]:
-        """Special column to fetch when parsing file of this data status"""
-        if self == self.__class__.Unfiltered:
-            return None
-        if self == self.__class__.ProximityOnly:
-            return "neighbors"
-        if self == self.__class__.ProximityAndNuclei:
-            return "nuc_label"  # This comes from assign_spots_to_nucs.py
-        # This is included only for completeness and should never happen.
-        raise ValueError(f"Unsupported spot kind/status: {self}")  # pragma: no cover
 
     @property
     def color(self) -> str:
         "Get the color for Napari for this status."
         if self == self.__class__.Unfiltered:
             return INDIGO
-        if self == self.__class__.ProximityOnly:
+        if self == self.__class__.ProximityFiltered:
             return PALE_SKY_BLUE
-        if self == self.__class__.ProximityAndNuclei:
+        if self == self.__class__.ProximityAndNucleiFiltered:
             return PALE_RED_CLAY
         # This is included only for completeness and should never happen.
         raise ValueError(f"Unsupported spot kind/status: {self}")  # pragma: no cover
@@ -68,24 +64,8 @@ class ProcessingStatus(Enum):
         parameters=dict(record="Record (e.g., row from CSV) of data to consider for building box."),
     )
     def record_to_box(self, record: MappingLike) -> Optional[BoundingBox3D]:
-        if self == self.__class__.Unfiltered:
-            result = BoundingBox3D.from_flat_arguments(**record)
-        elif self == self.__class__.ProximityOnly:
-            data = record.to_dict() if isinstance(record, pd.Series) else record
-            if data.pop(self.special_column) == "":
-                result = BoundingBox3D.from_flat_arguments(**data)
-            else:
-                result = None
-        elif self == self.__class__.ProximityAndNuclei:
-            data = record.to_dict() if isinstance(record, pd.Series) else record
-            if data.pop(self.special_column) != 0:
-                result = BoundingBox3D.from_flat_arguments(**data)
-            else:
-                result = None
-        else:
-            # This is included only for completeness and should never happen.
-            raise ValueError(f"Unsupported spot kind/status: {self}")  # pragma: no cover
-        return result
+        data = record.to_dict() if isinstance(record, pd.Series) else record
+        return BoundingBox3D.from_flat_arguments(**data)
 
     @classmethod
     def from_filename(cls, fn: str) -> Optional["ProcessingStatus"]:
