@@ -3,11 +3,11 @@
 import itertools
 import shutil
 from pathlib import Path
+
 import pytest
 
 from looptrace_regionals_vis import get_package_examples_folder, list_package_example_files
 from looptrace_regionals_vis.reader import get_reader
-
 
 EXAMPLE_FILES = list_package_example_files()
 
@@ -18,7 +18,7 @@ def test_cannot_read_list_of_files():
     ), "Expected inability to parse list of filepaths, but got non-null reader!"
 
 
-@pytest.mark.parametrize("wrap", (str, Path))
+@pytest.mark.parametrize("wrap", [str, Path])
 def test_would_read_collectivity_of_package_examples(wrap):
     folder = wrap(get_package_examples_folder())
     assert callable(
@@ -26,7 +26,7 @@ def test_would_read_collectivity_of_package_examples(wrap):
     ), f"Expected a callable reader for path {folder} but didn't get one!"
 
 
-@pytest.mark.parametrize("wrap", (str, Path))
+@pytest.mark.parametrize("wrap", [str, Path])
 @pytest.mark.parametrize(
     "what_to_copy",
     [

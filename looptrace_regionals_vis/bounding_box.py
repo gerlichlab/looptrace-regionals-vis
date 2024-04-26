@@ -1,9 +1,10 @@
 """Bounding boxes"""
 
-from abc import abstractmethod
 import dataclasses
+from abc import abstractmethod
+from collections.abc import Iterable
 from math import floor
-from typing import Iterable, Protocol
+from typing import Protocol
 
 from numpydoc_decorator import doc
 
@@ -71,8 +72,18 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
     x_max: float
 
     @classmethod
-    def from_flat_arguments(
-        cls, *, zc, yc, xc, z_min, z_max, y_min, y_max, x_min, x_max
+    def from_flat_arguments(  # noqa: D102
+        cls,
+        *,
+        zc,  # noqa: ANN001
+        yc,  # noqa: ANN001
+        xc,  # noqa: ANN001
+        z_min,  # noqa: ANN001
+        z_max,  # noqa: ANN001
+        y_min,  # noqa: ANN001
+        y_max,  # noqa: ANN001
+        x_min,  # noqa: ANN001
+        x_max,  # noqa: ANN001
     ) -> "BoundingBox3D":
         point = Point3D(z=zc, y=yc, x=xc)
         return cls(
@@ -86,27 +97,27 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
         )
 
     @doc(summary="Left side in x dimension")
-    def get_x_min(self) -> float:
+    def get_x_min(self) -> float:  # noqa: D102
         return self.x_min
 
     @doc(summary="Right side in x dimension")
-    def get_x_max(self) -> float:
+    def get_x_max(self) -> float:  # noqa: D102
         return self.x_max
 
     @doc(summary="Left side in y dimension")
-    def get_y_min(self) -> float:
+    def get_y_min(self) -> float:  # noqa: D102
         return self.y_min
 
     @doc(summary="Right side in y dimension")
-    def get_y_max(self) -> float:
+    def get_y_max(self) -> float:  # noqa: D102
         return self.y_max
 
     @doc(summary="Left side in z dimension")
-    def get_z_min(self) -> float:
+    def get_z_min(self) -> float:  # noqa: D102
         return self.z_min
 
     @doc(summary="Right side in z dimension")
-    def get_z_max(self) -> float:
+    def get_z_max(self) -> float:  # noqa: D102
         return self.z_max
 
     def __post_init__(self) -> None:

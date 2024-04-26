@@ -31,7 +31,7 @@ def test_cannot_parse_boxes_without_center(tmp_path, spots_file, drop_cols):
     pd.read_csv(spots_file, index_col=0).drop(list(drop_cols), axis=1).to_csv(target)
 
     # We expect an error because of a request to read specific columns (usecols) that will now be absent (having been removed).
-    with pytest.raises(ValueError) as error_context:
+    with pytest.raises(ValueError) as error_context:  # noqa: PT011
         parse_boxes(target)
     assert str(error_context.value).startswith(
         "Usecols do not match columns, columns expected but not found"

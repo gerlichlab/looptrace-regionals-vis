@@ -27,9 +27,9 @@ def determine_parameters(folder) -> list[LayerParams]:
     assert folder.is_dir(), f"Could not find example folder: {folder}"
     read = get_reader(folder)
     if not callable(read):
-        raise AssertionError(f"Expected to be able to read {folder} but couldn't!")
+        raise RuntimeError(f"Expected to be able to read {folder} but couldn't!")  # noqa: TRY004
     try:
         layers = read(folder)
     except ValueError as e:
-        raise AssertionError("Expected successful data parse but didn't get it!") from e
+        raise RuntimeError("Expected successful data parse but didn't get it!") from e
     return [params for _, params, _ in layers]

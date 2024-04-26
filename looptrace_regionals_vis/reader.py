@@ -1,16 +1,15 @@
 """Tools for creating the reader of regional points data"""
 
-from collections import Counter
-from collections.abc import Callable
 import dataclasses
 import logging
-import os
+from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, Optional
 
+import pandas as pd
 from gertils.types import TimepointFrom0
 from numpydoc_decorator import doc
-import pandas as pd
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
@@ -36,7 +35,7 @@ CHANNEL_COLUMN = "ch"
 def get_reader(path: PathOrPaths) -> Optional[Reader]:
     """Get a single-file parser with which to build layer data."""
 
-    def do_not_parse(msg, *, level=logging.DEBUG) -> None:
+    def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # noqa: ANN001
         logging.log(msg=msg, level=level)
 
     # Check that the given path is indeed a single extant file.
@@ -62,7 +61,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
         return None
 
     # Create the parser.
-    def build_layers(folder) -> list[FullDataLayer]:
+    def build_layers(folder) -> list[FullDataLayer]:  # noqa: ANN001
         # Map (uniquely!) each data kind/status to a file to parse.
         file_by_kind: dict[ProcessingStatus, Path] = {}
         for fp in Path(folder).iterdir():
@@ -90,7 +89,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 if box is None:
                     continue
                 for q1, q2, q3, q4, is_center_slice in box.iter_z_slices():
-                    corners.append([[timepoint, channel] + point_to_list(pt) for pt in [q1, q2, q3, q4]])
+                    corners.append(
+                        [[timepoint, channel, *point_to_list(pt)] for pt in [q1, q2, q3, q4]]
+                    )
                     shapes.append("rectangle" if is_center_slice else "ellipse")
             logging.debug("Point count for status %s: %d", status.name, len(corners))
             params: dict[str, object] = {
@@ -111,12 +112,16 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
     parameters=dict(path="Path to data file from which to parse bounding boxes"),
     raises=dict(ValueError="If data kind/status can't be inferred from given path"),
 )
-def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, Optional[BoundingBox3D]]]]:
+def parse_boxes(  # noqa: D103
+    path: Path,
+) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, Optional[BoundingBox3D]]]]:
     status = ProcessingStatus.from_filepath(path)
     if status is None:
         raise ValueError(f"Could not infer data kind/status from path: {path}")
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    spot_data = pd.read_csv(path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN])
+    spot_data = pd.read_csv(
+        path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN]
+    )
     time_channel_box_trios: list[tuple[TimepointFrom0, int, Optional[BoundingBox3D]]] = []
     for _, record in spot_data.iterrows():
         data = record.to_dict() if isinstance(record, pd.Series) else record
@@ -132,5 +137,5 @@ def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0
     parameters=dict(pt="Point to flatten"),
     returns="[z, y, x]",
 )
-def point_to_list(pt: Point3D) -> list[FloatLike]:
+def point_to_list(pt: Point3D) -> list[FloatLike]:  # noqa: D103
     return [pt.z, pt.y, pt.x]

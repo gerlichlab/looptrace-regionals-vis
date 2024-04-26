@@ -1,12 +1,12 @@
 """Data types related to encoding of data processing steps and status"""
 
-from enum import Enum
 import logging
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from numpydoc_decorator import doc
 import pandas as pd
+from numpydoc_decorator import doc
 
 from .bounding_box import BoundingBox3D
 from .colors import INDIGO, PALE_RED_CLAY, PALE_SKY_BLUE
@@ -32,7 +32,7 @@ class ProcessingStep(Enum):
     def from_string(cls, s: str) -> Optional["ProcessingStep"]:
         """Attempt to parse given string as a processing step."""
         for member in cls:
-            if s == member.name or s == member.value or s == member.filename_extension:
+            if s in {member.name, member.value, member.filename_extension}:
                 return member
         return None
 
@@ -63,7 +63,7 @@ class ProcessingStatus(Enum):
         summary="Decide whether to use the given record.",
         parameters=dict(record="Record (e.g., row from CSV) of data to consider for building box."),
     )
-    def record_to_box(self, record: MappingLike) -> Optional[BoundingBox3D]:
+    def record_to_box(self, record: MappingLike) -> Optional[BoundingBox3D]:  # noqa: D102
         data = record.to_dict() if isinstance(record, pd.Series) else record
         return BoundingBox3D.from_flat_arguments(**data)
 
@@ -72,10 +72,10 @@ class ProcessingStatus(Enum):
         """Attempt to infer processing status from given filename."""
         chunks = fn.split(".")
         if not chunks[0].endswith("_rois"):
-            logging.debug(f"There's no ROI-indicative suffix in file basename ({chunks[0]})")
+            logging.debug("There's no ROI-indicative suffix in file basename (%s)", chunks[0])
             return None
         if chunks[-1] != "csv":
-            logging.debug(f"No CSV extension on filename '{fn}'")
+            logging.debug("No CSV extension on filename '%s'", fn)
             return None
         steps = tuple(ProcessingStep.from_string(c) for c in chunks[1:-1])
         for member in cls:

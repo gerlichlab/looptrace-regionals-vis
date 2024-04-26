@@ -5,8 +5,8 @@ from math import floor
 from typing import Optional
 
 import hypothesis as hyp
-from hypothesis import strategies as st
 import pytest
+from hypothesis import strategies as st
 
 from looptrace_regionals_vis.bounding_box import BoundingBox3D
 from looptrace_regionals_vis.point import Point3D
@@ -129,20 +129,16 @@ def test_rectangle_protocol_support(box, api_member, validation_attribute):
 
 @hyp.given(error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_center())
 def test_center_must_be_within_bounds(error_inducing_arguments):
-    with pytest.raises(ValueError) as error_context:
-        return BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
-    exp_msg = "For each dimension, center coordinate must be within min/max bounds!"
-    obs_msg = str(error_context.value)
-    assert obs_msg == exp_msg, f"Expected error message '{exp_msg}' but got '{obs_msg}'"
+    with pytest.raises(
+        ValueError, match="For each dimension, center coordinate must be within min/max bounds!"
+    ):
+        BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
 
 
 @hyp.given(error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_endpoints())
 def test_endpoints_must_make_sense(error_inducing_arguments):
-    with pytest.raises(ValueError) as error_context:
-        return BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
-    exp_msg = "For each dimension, min must be no more than max!"
-    obs_msg = str(error_context.value)
-    assert obs_msg == exp_msg, f"Expected error message '{exp_msg}' but got '{obs_msg}'"
+    with pytest.raises(ValueError, match="For each dimension, min must be no more than max!"):
+        BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
 
 
 @hyp.given(box=gen_bbox_legit())
@@ -174,16 +170,16 @@ def test_iter_z_slices__always_designates_zero_or_one_z_slice_as_central(box):
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=5))  # smaller z range here for efficiency
 def test_iter_z_slices__maintains_box_coordinates(box):
     for i, (q1, q2, q3, q4, _) in enumerate(box.iter_z_slices()):
-        assert (
+        assert (  # noqa: PT018
             q1.x == box.x_max and q1.y == box.y_min
         ), f"Bad top-left point ({q1}) in {i}-th z-slice, from box {box}"
-        assert (
+        assert (  # noqa: PT018
             q2.x == box.x_min and q2.y == box.y_min
         ), f"Bad top-left point ({q2}) in {i}-th z-slice, from box {box}"
-        assert (
+        assert (  # noqa: PT018
             q3.x == box.x_min and q3.y == box.y_max
         ), f"Bad top-left point ({q3}) in {i}-th z-slice, from box {box}"
-        assert (
+        assert (  # noqa: PT018
             q4.x == box.x_max and q4.y == box.y_max
         ), f"Bad bottom-right point ({q4}) in {i}-th z-slice, from box {box}"
 

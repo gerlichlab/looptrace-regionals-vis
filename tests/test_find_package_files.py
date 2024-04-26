@@ -5,12 +5,11 @@ import string
 from unittest import mock
 
 import hypothesis as hyp
-from hypothesis import strategies as st
 import pytest
+from hypothesis import strategies as st
 
 import looptrace_regionals_vis
 from looptrace_regionals_vis import find_package_files
-
 
 gen_non_extant_resource_folder = st.text(
     alphabet=string.ascii_letters + string.digits + "_-"
@@ -40,6 +39,8 @@ def test_empty_subfolder_search_raises_expected_error(tmp_path, subfolder):
     """Here we patch the resource-finding call so that we simulate injecting an empty folder into the package resources."""
     filemock = mock.MagicMock()
     filemock.joinpath.return_value = tmp_path
-    with mock.patch("looptrace_regionals_vis.importlib.resources.files", return_value=filemock):
-        with pytest.raises(ValueError):
-            find_package_files(subfolder)
+    with (
+        mock.patch("looptrace_regionals_vis.importlib.resources.files", return_value=filemock),
+        pytest.raises(ValueError),  # noqa: PT011
+    ):
+        find_package_files(subfolder)

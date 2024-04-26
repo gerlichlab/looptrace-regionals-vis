@@ -3,11 +3,10 @@
 import math
 
 import hypothesis as hyp
-from hypothesis import strategies as st
 import pytest
+from hypothesis import strategies as st
 
 from looptrace_regionals_vis.point import Point3D
-
 
 legal_float = st.floats(allow_nan=False, allow_infinity=False)
 gen_int_or_float = st.one_of(st.integers(), legal_float)
@@ -52,9 +51,8 @@ def test_point_cannot_be_constructed_with_non_float(coordinates):
 )
 def test_point_cannot_be_constructed_with_infinite(coordinates):
     z, y, x = coordinates
-    with pytest.raises(ValueError) as error_context:
+    with pytest.raises(ValueError, match="Cannot use an infinite value as a point coordinate!"):
         Point3D(z=z, y=y, x=x)
-    assert "Cannot use an infinite value as a point coordinate!" == str(error_context.value)
 
 
 @hyp.given(
@@ -68,6 +66,5 @@ def test_point_cannot_be_constructed_with_infinite(coordinates):
 )
 def test_point_cannot_be_constructed_with_nan(coordinates):
     z, y, x = coordinates
-    with pytest.raises(ValueError) as error_context:
+    with pytest.raises(ValueError, match="Cannot use a null numeric as a point coordinate!"):
         Point3D(z=z, y=y, x=x)
-    assert "Cannot use a null numeric as a point coordinate!" == str(error_context.value)

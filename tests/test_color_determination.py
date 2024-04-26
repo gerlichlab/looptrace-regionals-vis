@@ -19,6 +19,6 @@ def test_colors_are_as_expected(status, expected_color):
     ), f"Color for data processing status {status} wasn't as expected ({expected_color}): {observed_color}"
 
 
-@pytest.mark.parametrize("status", [s for s in ProcessingStatus])
+@pytest.mark.parametrize("status", list(ProcessingStatus))
 def test_each_member_of_data_status_enum_resolves_to_a_color(status):
     assert status.color is not None, f"Got null color for data processing status {status}"

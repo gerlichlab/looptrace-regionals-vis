@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 import hypothesis as hyp
-from hypothesis import strategies as st
 import pytest
-
+from hypothesis import strategies as st
 from numpydoc_decorator import doc
 
 from looptrace_regionals_vis import find_package_files
@@ -23,7 +22,7 @@ from looptrace_regionals_vis.processing import ProcessingStatus
     ),
 )
 @dataclass(kw_only=True, frozen=True)
-class ProcessingStatusInferenceParameterization:  # noqa: D101
+class ProcessingStatusInferenceParameterization:
     suffix: str
     extension: str
     expectation: Optional[ProcessingStatus]
