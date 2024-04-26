@@ -127,7 +127,7 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
 
     def iter_z_slices(self) -> Iterable[tuple[Point3D, Point3D, Point3D, Point3D, bool]]:
         """Stack (1 slice per z) corner points with flag indicating if the slice corresponds to center in z."""
-        for z in range(floor(self.z_min), floor(self.z_max) + 1):
+        for z in range(max(0, floor(self.z_min)), max(0, floor(self.z_max) + 1)):
             q1 = Point3D(z=float(z), y=self.y_min, x=self.x_max)
             q2 = Point3D(z=float(z), y=self.y_min, x=self.x_min)
             q3 = Point3D(z=float(z), y=self.y_max, x=self.x_min)
