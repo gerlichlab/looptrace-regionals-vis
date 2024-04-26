@@ -4,6 +4,9 @@ contributions:
   - id: looptrace-regionals-vis.read_looptrace_regional_points
     title: Read looptrace regional barcode points data
     python_name: looptrace_regionals_vis.reader:get_reader
+  - id: looptrace-regionals-vis.read_looptrace_regional_spot_images
+    title: Read looptrace regional barcode spot images
+    python_name: looptrace_regionals_vis.zarr_reader:get_reader
   readers:
   - command: looptrace-regionals-vis.read_looptrace_regional_points
     filename_patterns:
@@ -11,3 +14,7 @@ contributions:
     - '*_rois.proximity_filtered.csv'
     - '*_rois.proximity_filtered.nuclei_filtered.csv'
     accepts_directories: true
+  - command: looptrace-regionals-vis.read_looptrace_regional_spot_images
+    filename_patterns:
+    - 'P*.zarr'
+    acccepts_directories: false
