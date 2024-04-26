@@ -1,29 +1,31 @@
 """Tools for creating the reader of regional points data"""
 
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 import dataclasses
 import logging
+import os
 from pathlib import Path
 from typing import Literal, Optional
 
+from gertils.types import TimepointFrom0
 from numpydoc_decorator import doc
 import pandas as pd
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .processing import ProcessingStatus
+from .types import LayerParams, PathOrPaths
 
-LayerParams = dict[str, object]
-FullDataLayer = tuple[list[Point3D], LayerParams, Literal["shapes"]]
-PathLike = str | Path
-PathOrPaths = PathLike | list[PathLike]
+FullDataLayer = tuple[list[list[FloatLike]], LayerParams, Literal["shapes"]]
 Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
 
 SHAPE_PARAMS_KEY = "shape_type"
 COLOR_PARAMS_KEY = "edge_color"
 BOX_CENTER_COLUMN_NAMES = ["zc", "yc", "xc"]
+TIME_COLUMN = "frame"
+CHANNEL_COLUMN = "ch"
 
 
 @doc(
@@ -82,13 +84,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 raise RuntimeError(
                     f"File {fp} had been deemed {status} but then was parsed as {inferred_status}"
                 )
-            corners: list[list[list[float]]] = []
+            corners: list[list[list[int | float]]] = []
             shapes: list[str] = []
-            for box in boxes:
+            for timepoint, channel, box in boxes:
                 if box is None:
                     continue
                 for q1, q2, q3, q4, is_center_slice in box.iter_z_slices():
-                    corners.append([point_to_list(pt) for pt in [q1, q2, q3, q4]])
+                    corners.append([[timepoint, channel] + point_to_list(pt) for pt in [q1, q2, q3, q4]])
                     shapes.append("rectangle" if is_center_slice else "ellipse")
             logging.debug("Point count for status %s: %d", status.name, len(corners))
             params: dict[str, object] = {
@@ -108,15 +110,21 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
     summary="Read the data from the given file and parse it into bounding boxes.",
     parameters=dict(path="Path to data file from which to parse bounding boxes"),
     raises=dict(ValueError="If data kind/status can't be inferred from given path"),
-    returns="The inferred data kind/status, and a list of bounding boxes, one per record in the given file",
 )
-def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[Optional[BoundingBox3D]]]:
+def parse_boxes(path: Path) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, Optional[BoundingBox3D]]]]:
     status = ProcessingStatus.from_filepath(path)
     if status is None:
         raise ValueError(f"Could not infer data kind/status from path: {path}")
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    spot_data = pd.read_csv(path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols)
-    return status, [status.record_to_box(record) for _, record in spot_data.iterrows()]
+    spot_data = pd.read_csv(path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN])
+    time_channel_box_trios: list[tuple[TimepointFrom0, int, Optional[BoundingBox3D]]] = []
+    for _, record in spot_data.iterrows():
+        data = record.to_dict() if isinstance(record, pd.Series) else record
+        time = data.pop(TIME_COLUMN)
+        channel = data.pop(CHANNEL_COLUMN)
+        box = status.record_to_box(data)
+        time_channel_box_trios.append((time, channel, box))
+    return status, time_channel_box_trios
 
 
 @doc(
