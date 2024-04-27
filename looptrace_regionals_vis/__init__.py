@@ -38,7 +38,7 @@ def get_package_examples_folder() -> Path:  # noqa: D103
 
 
 @doc(
-    summary="Get the hook with which to access resources bundled with this packge.",
+    summary="Get the hook with which to access resources bundled with this package.",
     see_also="importlib.resources.files",
 )
 def _get_package_resources() -> Traversable:

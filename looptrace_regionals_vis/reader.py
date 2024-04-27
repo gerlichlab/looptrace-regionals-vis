@@ -54,7 +54,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
         for f in path.iterdir()
         if f.is_file() and f.suffix == ".csv"
     )
-    if any(count_by_kind.get(status, 0) != 1 for status in ProcessingStatus):
+    if any(n != 1 for n in count_by_kind.values()):
         do_not_parse(
             f"Count of file by data kind doesn't support reading from {path}: {count_by_kind}"
         )
@@ -71,7 +71,10 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
             if kind is None:
                 continue
             if kind in file_by_kind:
-                raise KeyError(f"Data kind {kind} already found in {folder}: {file_by_kind[kind]}")
+                # should already be guarded by the decision to parse or not, so it's exceptional.
+                raise KeyError(
+                    f"Data kind {kind} already found in {folder}: {file_by_kind[kind]}"
+                )  # pragma: no cover
             file_by_kind[kind] = fp
 
         layers: list[FullDataLayer] = []
@@ -79,16 +82,14 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
         for status, fp in file_by_kind.items():
             logging.debug("Processing data for status %s: %s", status.name, fp)
             inferred_status, boxes = parse_boxes(fp)
-            if inferred_status != status:  # This should never happen
-                raise RuntimeError(
+            if inferred_status != status:  # This should never happen.
+                raise RuntimeError(  # pragma: no cover
                     f"File {fp} had been deemed {status} but then was parsed as {inferred_status}"
                 )
             corners: list[list[list[int | float]]] = []
             shapes: list[str] = []
             for timepoint, channel, box in boxes:
-                if box is None:
-                    continue
-                for q1, q2, q3, q4, is_center_slice in box.iter_z_slices():
+                for q1, q2, q3, q4, is_center_slice in box.iter_z_slices_nonnegative():
                     corners.append(
                         [[timepoint, channel, *point_to_list(pt)] for pt in [q1, q2, q3, q4]]
                     )
@@ -114,7 +115,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 )
 def parse_boxes(  # noqa: D103
     path: Path,
-) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, Optional[BoundingBox3D]]]]:
+) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, BoundingBox3D]]]:
     status = ProcessingStatus.from_filepath(path)
     if status is None:
         raise ValueError(f"Could not infer data kind/status from path: {path}")
@@ -122,7 +123,7 @@ def parse_boxes(  # noqa: D103
     spot_data = pd.read_csv(
         path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN]
     )
-    time_channel_box_trios: list[tuple[TimepointFrom0, int, Optional[BoundingBox3D]]] = []
+    time_channel_box_trios: list[tuple[TimepointFrom0, int, BoundingBox3D]] = []
     for _, record in spot_data.iterrows():
         data = record.to_dict() if isinstance(record, pd.Series) else record
         time = data.pop(TIME_COLUMN)

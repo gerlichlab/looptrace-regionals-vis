@@ -156,11 +156,13 @@ def test_diff_between_max_and_center_is_nonnegative_for_all_dimensions(box, dimn
     assert getattr(box, f"{dimname}_max") - getattr(box.center, dimname) >= 0
 
 
-@hyp.given(box=gen_bbox_legit(min_z=-50, max_z=50))
+@hyp.given(box=gen_bbox_legit(min_z=-5, max_z=50))
 @hyp.settings(max_examples=1000)  # Bump up example count here since the logic is tricky.
-def test_iter_z_slices__always_designates_zero_or_one_z_slice_as_central(box):
-    is_center_flags: list[bool] = [is_center for _, _, _, _, is_center in box.iter_z_slices()]
-    num_central_exp = 0 if round(box.center.z) > box.get_z_max() else 1
+def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_central(box):
+    is_center_flags: list[bool] = [
+        is_center for _, _, _, _, is_center in box.iter_z_slices_nonnegative()
+    ]
+    num_central_exp = 0 if round(box.center.z) < 0 or round(box.center.z) > box.get_z_max() else 1
     num_central_obs = sum(is_center_flags)
     assert (
         num_central_obs == num_central_exp
@@ -168,8 +170,8 @@ def test_iter_z_slices__always_designates_zero_or_one_z_slice_as_central(box):
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=5))  # smaller z range here for efficiency
-def test_iter_z_slices__maintains_box_coordinates(box):
-    for i, (q1, q2, q3, q4, _) in enumerate(box.iter_z_slices()):
+def test_iter_z_slices_nonnegative__maintains_box_coordinates(box):
+    for i, (q1, q2, q3, q4, _) in enumerate(box.iter_z_slices_nonnegative()):
         assert (  # noqa: PT018
             q1.x == box.x_max and q1.y == box.y_min
         ), f"Bad top-left point ({q1}) in {i}-th z-slice, from box {box}"
@@ -185,9 +187,24 @@ def test_iter_z_slices__maintains_box_coordinates(box):
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-50, max_z=50))
-def test_iter_z_slices__slice_count_is_always_one_greater_than_difference_between_z_floors(box):
-    exp_num_slices = floor(box.z_max) - floor(box.z_min) + 1
-    obs_num_slices = sum(1 for _ in box.iter_z_slices())
+def test_iter_z_slices_nonnegative__slice_count_is_always_one_greater_than_difference_between_max_of_z_floors_and_zero(
+    box,
+):
+    """There's one slice produced for each nonnegative integer in [floor(z_min), floor(z_max))."""
+    exp_num_slices = max(0, floor(box.z_max) + 1) - max(0, floor(box.z_min))
+    obs_num_slices = sum(1 for _ in box.iter_z_slices_nonnegative())
     assert (
         obs_num_slices == exp_num_slices
     ), f"Expected {exp_num_slices} z-slices but got {obs_num_slices} from box {box}"
+
+
+@hyp.given(box=gen_bbox_legit())
+def test_z_slice_iteration_is_empty_if_and_only_if_both_z_endpoints_are_negative(box):
+    if box.z_min < 0 and box.z_max < 0:
+        with pytest.raises(StopIteration):
+            next(box.iter_z_slices_nonnegative())
+    else:
+        try:
+            next(box.iter_z_slices_nonnegative())
+        except StopIteration:
+            pytest.fail(f"Empty z-slice iteration from this bounding box: {box}")

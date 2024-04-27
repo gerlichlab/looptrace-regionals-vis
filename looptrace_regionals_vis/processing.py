@@ -26,7 +26,8 @@ class ProcessingStep(Enum):
             return "nuclei_filtered"
         if self == self.__class__.ProximityFiltration:
             return "proximity_filtered"
-        raise ValueError(f"Unsupported processing step: {self}")
+        # This is included only for completeness and should never happen.
+        raise ValueError(f"Unsupported processing step: {self}")  # pragma: no cover
 
     @classmethod
     def from_string(cls, s: str) -> Optional["ProcessingStep"]:
@@ -63,7 +64,7 @@ class ProcessingStatus(Enum):
         summary="Decide whether to use the given record.",
         parameters=dict(record="Record (e.g., row from CSV) of data to consider for building box."),
     )
-    def record_to_box(self, record: MappingLike) -> Optional[BoundingBox3D]:  # noqa: D102
+    def record_to_box(self, record: MappingLike) -> BoundingBox3D:  # noqa: D102
         data = record.to_dict() if isinstance(record, pd.Series) else record
         return BoundingBox3D.from_flat_arguments(**data)
 
