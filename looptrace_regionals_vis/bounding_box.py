@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from math import floor
 from typing import Protocol
 
-from numpydoc_decorator import doc
+from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from .point import Point3D
 
@@ -72,7 +72,7 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
     x_max: float
 
     @classmethod
-    def from_flat_arguments(  # noqa: D102
+    def from_flat_arguments(  # type: ignore[no-untyped-def] # noqa: D102
         cls,
         *,
         zc,  # noqa: ANN001
@@ -145,5 +145,5 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
             q2 = Point3D(z=float(z), y=self.y_min, x=self.x_min)
             q3 = Point3D(z=float(z), y=self.y_max, x=self.x_min)
             q4 = Point3D(z=float(z), y=self.y_max, x=self.x_max)
-            is_center = z == self._nearest_z_slice
+            is_center = z == self._nearest_z_slice  # type: ignore[attr-defined]
             yield q1, q2, q3, q4, is_center

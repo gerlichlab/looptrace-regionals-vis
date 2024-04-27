@@ -4,7 +4,7 @@ import dataclasses
 import math
 
 import numpy as np
-from numpydoc_decorator import doc
+from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 FloatLike = float | np.float64
 

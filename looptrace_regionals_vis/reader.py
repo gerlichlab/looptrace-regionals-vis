@@ -7,16 +7,16 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, Optional
 
+import numpy as np
 import pandas as pd
-from gertils.types import TimepointFrom0
-from numpydoc_decorator import doc
+from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .processing import ProcessingStatus
 from .types import LayerParams, PathOrPaths
 
-FullDataLayer = tuple[list[list[FloatLike]], LayerParams, Literal["shapes"]]
+FullDataLayer = tuple[list[list[list[int | FloatLike]]], LayerParams, Literal["shapes"]]
 Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
 
@@ -35,12 +35,12 @@ CHANNEL_COLUMN = "ch"
 def get_reader(path: PathOrPaths) -> Optional[Reader]:
     """Get a single-file parser with which to build layer data."""
 
-    def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # noqa: ANN001
+    def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
         logging.log(msg=msg, level=level)
 
     # Check that the given path is indeed a single extant file.
     if isinstance(path, str):
-        path: Path = Path(path)
+        path: Path = Path(path)  # type: ignore[no-redef]
     if not isinstance(path, Path):
         do_not_parse(f"Can only parse Path, not {type(path).__name__}")
         return None
@@ -61,7 +61,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
         return None
 
     # Create the parser.
-    def build_layers(folder) -> list[FullDataLayer]:  # noqa: ANN001
+    def build_layers(folder) -> list[FullDataLayer]:  # type: ignore[no-untyped-def]  # noqa: ANN001
         # Map (uniquely!) each data kind/status to a file to parse.
         file_by_kind: dict[ProcessingStatus, Path] = {}
         for fp in Path(folder).iterdir():
@@ -81,14 +81,14 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 
         for status, fp in file_by_kind.items():
             logging.debug("Processing data for status %s: %s", status.name, fp)
-            inferred_status, boxes = parse_boxes(fp)
+            inferred_status, time_channel_box_trios = parse_boxes(fp)
             if inferred_status != status:  # This should never happen.
                 raise RuntimeError(  # pragma: no cover
                     f"File {fp} had been deemed {status} but then was parsed as {inferred_status}"
                 )
-            corners: list[list[list[int | float]]] = []
+            corners: list[list[list[int | FloatLike]]] = []
             shapes: list[str] = []
-            for timepoint, channel, box in boxes:
+            for timepoint, channel, box in time_channel_box_trios:
                 for q1, q2, q3, q4, is_center_slice in box.iter_z_slices_nonnegative():
                     corners.append(
                         [[timepoint, channel, *point_to_list(pt)] for pt in [q1, q2, q3, q4]]
@@ -115,7 +115,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 )
 def parse_boxes(  # noqa: D103
     path: Path,
-) -> tuple[ProcessingStatus, list[tuple[TimepointFrom0, BoundingBox3D]]]:
+) -> tuple[ProcessingStatus, list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]]]:
     status = ProcessingStatus.from_filepath(path)
     if status is None:
         raise ValueError(f"Could not infer data kind/status from path: {path}")
@@ -123,12 +123,12 @@ def parse_boxes(  # noqa: D103
     spot_data = pd.read_csv(
         path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN]
     )
-    time_channel_box_trios: list[tuple[TimepointFrom0, int, BoundingBox3D]] = []
+    time_channel_box_trios: list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]] = []
     for _, record in spot_data.iterrows():
-        data = record.to_dict() if isinstance(record, pd.Series) else record
+        data: dict[str, int | float | np.float64] = record.to_dict()
         time = data.pop(TIME_COLUMN)
         channel = data.pop(CHANNEL_COLUMN)
-        box = status.record_to_box(data)
+        box = BoundingBox3D.from_flat_arguments(**data)
         time_channel_box_trios.append((time, channel, box))
     return status, time_channel_box_trios
 

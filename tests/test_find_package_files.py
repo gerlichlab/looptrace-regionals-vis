@@ -1,6 +1,11 @@
 """Tests for this package's example files"""
 
-import importlib.resources
+import sys
+
+if sys.version_info < (3, 11):
+    import importlib_resources  # pragma: no cover
+else:
+    import importlib.resources as importlib_resources  # pragma: no cover
 import string
 from unittest import mock
 
@@ -13,7 +18,7 @@ from looptrace_regionals_vis import find_package_files
 
 gen_non_extant_resource_folder = st.text(
     alphabet=string.ascii_letters + string.digits + "_-"
-).filter(lambda sub: not importlib.resources.files(looptrace_regionals_vis).joinpath(sub).is_dir())
+).filter(lambda sub: not importlib_resources.files(looptrace_regionals_vis).joinpath(sub).is_dir())
 
 
 def test_package_example_files_count():
@@ -40,7 +45,7 @@ def test_empty_subfolder_search_raises_expected_error(tmp_path, subfolder):
     filemock = mock.MagicMock()
     filemock.joinpath.return_value = tmp_path
     with (
-        mock.patch("looptrace_regionals_vis.importlib.resources.files", return_value=filemock),
+        mock.patch("looptrace_regionals_vis.importlib_resources.files", return_value=filemock),
         pytest.raises(ValueError),  # noqa: PT011
     ):
         find_package_files(subfolder)

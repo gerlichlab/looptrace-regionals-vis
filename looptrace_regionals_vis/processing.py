@@ -5,12 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-import pandas as pd
-from numpydoc_decorator import doc
-
-from .bounding_box import BoundingBox3D
 from .colors import INDIGO, PALE_RED_CLAY, PALE_SKY_BLUE
-from .types import MappingLike
 
 
 class ProcessingStep(Enum):
@@ -22,9 +17,9 @@ class ProcessingStep(Enum):
     @property
     def filename_extension(self) -> str:
         """Get the representation of this step in a filename extension."""
-        if self == self.__class__.NucleiFiltration:
+        if self == ProcessingStep.NucleiFiltration:
             return "nuclei_filtered"
-        if self == self.__class__.ProximityFiltration:
+        if self == ProcessingStep.ProximityFiltration:
             return "proximity_filtered"
         # This is included only for completeness and should never happen.
         raise ValueError(f"Unsupported processing step: {self}")  # pragma: no cover
@@ -41,7 +36,7 @@ class ProcessingStep(Enum):
 class ProcessingStatus(Enum):
     """The processing steps undergone by data in a file or in memory"""
 
-    Unfiltered = tuple()
+    Unfiltered = tuple()  # type: ignore[var-annotated]
     ProximityFiltered = (ProcessingStep.ProximityFiltration,)
     ProximityAndNucleiFiltered = (
         ProcessingStep.ProximityFiltration,
@@ -51,22 +46,14 @@ class ProcessingStatus(Enum):
     @property
     def color(self) -> str:
         "Get the color for Napari for this status."
-        if self == self.__class__.Unfiltered:
+        if self == ProcessingStatus.Unfiltered:
             return INDIGO
-        if self == self.__class__.ProximityFiltered:
+        if self == ProcessingStatus.ProximityFiltered:
             return PALE_SKY_BLUE
-        if self == self.__class__.ProximityAndNucleiFiltered:
+        if self == ProcessingStatus.ProximityAndNucleiFiltered:
             return PALE_RED_CLAY
         # This is included only for completeness and should never happen.
         raise ValueError(f"Unsupported spot kind/status: {self}")  # pragma: no cover
-
-    @doc(
-        summary="Decide whether to use the given record.",
-        parameters=dict(record="Record (e.g., row from CSV) of data to consider for building box."),
-    )
-    def record_to_box(self, record: MappingLike) -> BoundingBox3D:  # noqa: D102
-        data = record.to_dict() if isinstance(record, pd.Series) else record
-        return BoundingBox3D.from_flat_arguments(**data)
 
     @classmethod
     def from_filename(cls, fn: str) -> Optional["ProcessingStatus"]:
