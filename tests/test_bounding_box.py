@@ -35,20 +35,20 @@ def gen_bbox_legit(draw, *, min_z: Optional[float] = None, max_z: Optional[float
     """Generate a valid bounding box, center valid w.r.t. box bounds."""
     (z1, z2) = draw(gen_pair(min_value=min_z, max_value=max_z))
     (y1, y2), (x1, x2) = draw(st.tuples(gen_pair(), gen_pair()))
-    z_min, z_max = min(z1, z2), max(z1, z2)
-    y_min, y_max = min(y1, y2), max(y1, y2)
-    x_min, x_max = min(x1, x2), max(x1, x2)
-    zc = draw(st.floats(min_value=z_min, max_value=z_max))
-    yc = draw(st.floats(min_value=y_min, max_value=y_max))
-    xc = draw(st.floats(min_value=x_min, max_value=x_max))
+    zMin, zMax = min(z1, z2), max(z1, z2)
+    yMin, yMax = min(y1, y2), max(y1, y2)
+    xMin, xMax = min(x1, x2), max(x1, x2)
+    zc = draw(st.floats(min_value=zMin, max_value=zMax))
+    yc = draw(st.floats(min_value=yMin, max_value=yMax))
+    xc = draw(st.floats(min_value=xMin, max_value=xMax))
     return BoundingBox3D(
         center=Point3D(z=zc, y=yc, x=xc),
-        z_min=z_min,
-        z_max=z_max,
-        y_min=y_min,
-        y_max=y_max,
-        x_min=x_min,
-        x_max=x_max,
+        zMin=zMin,
+        zMax=zMax,
+        yMin=yMin,
+        yMax=yMax,
+        xMin=xMin,
+        xMax=xMax,
     )
 
 
@@ -59,50 +59,48 @@ def gen_bbox_arguments_with_contextually_illegal_center(draw):
     zc = draw(gen_legal_coordinate())
     yc = draw(gen_legal_coordinate())
     xc = draw(gen_legal_coordinate())
-    z_min, z_max = min(z1, z2), max(z1, z2)
-    y_min, y_max = min(y1, y2), max(y1, y2)
-    x_min, x_max = min(x1, x2), max(x1, x2)
+    zMin, zMax = min(z1, z2), max(z1, z2)
+    yMin, yMax = min(y1, y2), max(y1, y2)
+    xMin, xMax = min(x1, x2), max(x1, x2)
 
     # Gate on the condition that we've generated at least one problem, as desired.
-    hyp.assume(zc < z_min or zc > z_max or yc < y_min or yc > y_max or xc < x_min or xc > x_max)
+    hyp.assume(zc < zMin or zc > zMax or yc < yMin or yc > yMax or xc < xMin or xc > xMax)
 
     return {
         "zc": zc,
         "yc": yc,
         "xc": xc,
-        "z_min": z_min,
-        "z_max": z_max,
-        "y_min": y_min,
-        "y_max": y_max,
-        "x_min": x_min,
-        "x_max": x_max,
+        "zMin": zMin,
+        "zMax": zMax,
+        "yMin": yMin,
+        "yMax": yMax,
+        "xMin": xMin,
+        "xMax": xMax,
     }
 
 
 @st.composite
 def gen_bbox_arguments_with_contextually_illegal_endpoints(draw):
     """Generate a valid bounding box, center valid w.r.t. box bounds."""
-    (z_min, z_max), (y_min, y_max), (x_min, x_max) = draw(
-        st.tuples(gen_pair(), gen_pair(), gen_pair())
-    )
+    (zMin, zMax), (yMin, yMax), (xMin, xMax) = draw(st.tuples(gen_pair(), gen_pair(), gen_pair()))
 
     # We want at least one such nonsense bounds.
-    hyp.assume(z_min > z_max or y_min > y_max or x_min > x_max)
+    hyp.assume(zMin > zMax or yMin > yMax or xMin > xMax)
 
-    zc = draw(st.floats(min_value=min(z_min, z_max), max_value=max(z_min, z_max)))
-    yc = draw(st.floats(min_value=min(y_min, y_max), max_value=max(y_min, y_max)))
-    xc = draw(st.floats(min_value=min(x_min, x_max), max_value=max(x_min, x_max)))
+    zc = draw(st.floats(min_value=min(zMin, zMax), max_value=max(zMin, zMax)))
+    yc = draw(st.floats(min_value=min(yMin, yMax), max_value=max(yMin, yMax)))
+    xc = draw(st.floats(min_value=min(xMin, xMax), max_value=max(xMin, xMax)))
 
     return {
         "zc": zc,
         "yc": yc,
         "xc": xc,
-        "z_min": z_min,
-        "z_max": z_max,
-        "y_min": y_min,
-        "y_max": y_max,
-        "x_min": x_min,
-        "x_max": x_max,
+        "zMin": zMin,
+        "zMax": zMax,
+        "yMin": yMin,
+        "yMax": yMax,
+        "xMin": xMin,
+        "xMax": xMax,
     }
 
 
@@ -110,12 +108,12 @@ def gen_bbox_arguments_with_contextually_illegal_endpoints(draw):
 @pytest.mark.parametrize(
     ("api_member", "validation_attribute"),
     [
-        ("get_z_min", "z_min"),
-        ("get_z_max", "z_max"),
-        ("get_y_min", "y_min"),
-        ("get_y_max", "y_max"),
-        ("get_x_min", "x_min"),
-        ("get_x_max", "x_max"),
+        ("get_zMin", "zMin"),
+        ("get_zMax", "zMax"),
+        ("get_yMin", "yMin"),
+        ("get_yMax", "yMax"),
+        ("get_xMin", "xMin"),
+        ("get_xMax", "xMax"),
     ],
 )
 def test_rectangle_protocol_support(box, api_member, validation_attribute):
@@ -143,17 +141,17 @@ def test_endpoints_must_make_sense(error_inducing_arguments):
 
 @hyp.given(box=gen_bbox_legit())
 def test_diff_between_endpoints_is_nonnegative_for_all_dimensions(box, dimname):
-    assert getattr(box, f"{dimname}_max") - getattr(box, f"{dimname}_min") >= 0
+    assert getattr(box, f"{dimname}Max") - getattr(box, f"{dimname}Min") >= 0
 
 
 @hyp.given(box=gen_bbox_legit())
 def test_diff_between_center_and_min_is_nonnegative_for_all_dimensions(box, dimname):
-    assert getattr(box.center, dimname) - getattr(box, f"{dimname}_min") >= 0
+    assert getattr(box.center, dimname) - getattr(box, f"{dimname}Min") >= 0
 
 
 @hyp.given(box=gen_bbox_legit())
 def test_diff_between_max_and_center_is_nonnegative_for_all_dimensions(box, dimname):
-    assert getattr(box, f"{dimname}_max") - getattr(box.center, dimname) >= 0
+    assert getattr(box, f"{dimname}Max") - getattr(box.center, dimname) >= 0
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=50))
@@ -162,7 +160,7 @@ def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_cen
     is_center_flags: list[bool] = [
         is_center for _, _, _, _, is_center in box.iter_z_slices_nonnegative()
     ]
-    num_central_exp = 0 if round(box.center.z) < 0 or round(box.center.z) > box.get_z_max() else 1
+    num_central_exp = 0 if round(box.center.z) < 0 or round(box.center.z) > box.get_zMax() else 1
     num_central_obs = sum(is_center_flags)
     assert (
         num_central_obs == num_central_exp
@@ -173,16 +171,16 @@ def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_cen
 def test_iter_z_slices_nonnegative__maintains_box_coordinates(box):
     for i, (q1, q2, q3, q4, _) in enumerate(box.iter_z_slices_nonnegative()):
         assert (  # noqa: PT018
-            q1.x == box.x_max and q1.y == box.y_min
+            q1.x == box.xMax and q1.y == box.yMin
         ), f"Bad top-left point ({q1}) in {i}-th z-slice, from box {box}"
         assert (  # noqa: PT018
-            q2.x == box.x_min and q2.y == box.y_min
+            q2.x == box.xMin and q2.y == box.yMin
         ), f"Bad top-left point ({q2}) in {i}-th z-slice, from box {box}"
         assert (  # noqa: PT018
-            q3.x == box.x_min and q3.y == box.y_max
+            q3.x == box.xMin and q3.y == box.yMax
         ), f"Bad top-left point ({q3}) in {i}-th z-slice, from box {box}"
         assert (  # noqa: PT018
-            q4.x == box.x_max and q4.y == box.y_max
+            q4.x == box.xMax and q4.y == box.yMax
         ), f"Bad bottom-right point ({q4}) in {i}-th z-slice, from box {box}"
 
 
@@ -190,8 +188,8 @@ def test_iter_z_slices_nonnegative__maintains_box_coordinates(box):
 def test_iter_z_slices_nonnegative__slice_count_is_always_one_greater_than_difference_between_max_of_z_floors_and_zero(
     box,
 ):
-    """There's one slice produced for each nonnegative integer in [floor(z_min), floor(z_max))."""
-    exp_num_slices = max(0, floor(box.z_max) + 1) - max(0, floor(box.z_min))
+    """There's one slice produced for each nonnegative integer in [floor(zMin), floor(zMax))."""
+    exp_num_slices = max(0, floor(box.zMax) + 1) - max(0, floor(box.zMin))
     obs_num_slices = sum(1 for _ in box.iter_z_slices_nonnegative())
     assert (
         obs_num_slices == exp_num_slices
@@ -200,7 +198,7 @@ def test_iter_z_slices_nonnegative__slice_count_is_always_one_greater_than_diffe
 
 @hyp.given(box=gen_bbox_legit())
 def test_z_slice_iteration_is_empty_if_and_only_if_both_z_endpoints_are_negative(box):
-    if box.z_min < 0 and box.z_max < 0:
+    if box.zMin < 0 and box.zMax < 0:
         with pytest.raises(StopIteration):
             next(box.iter_z_slices_nonnegative())
     else:

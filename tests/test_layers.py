@@ -3,8 +3,7 @@
 import pytest
 
 from looptrace_regionals_vis import get_package_examples_folder
-from looptrace_regionals_vis.colors import INDIGO, PALE_RED_CLAY, PALE_SKY_BLUE
-from looptrace_regionals_vis.reader import COLOR_PARAMS_KEY, LayerParams, get_reader
+from looptrace_regionals_vis.reader import COLOR_PARAMS_KEY, LayerParams, RoiType, get_reader
 
 
 @pytest.mark.skip("not implemented")
@@ -13,13 +12,12 @@ def test_shapes_are_as_expected():
 
 
 def test_colors_are_as_expected():
-    exp_color_by_name = {
-        "P0001_rois": INDIGO,
-        "P0001_rois.proximity_filtered": PALE_SKY_BLUE,
-        "P0001_rois.proximity_filtered.nuclei_filtered": PALE_RED_CLAY,
-    }
+    # Input data means every RoiType should be found.
+    exp_color_by_name = {roi.name: roi.value for roi in RoiType}
+
     params: list[LayerParams] = determine_parameters(get_package_examples_folder())
     obs_color_by_name = {p["name"]: p[COLOR_PARAMS_KEY] for p in params}
+
     assert obs_color_by_name == exp_color_by_name
 
 

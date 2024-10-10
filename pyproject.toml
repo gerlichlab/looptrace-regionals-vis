@@ -119,6 +119,10 @@ ignore = [
     "N818",  # Exception should be named with an Error suffix
     "PLR0913", # Too many arguments in function definition
     "D401", # First line of docstring should be in imperative mood
+    "N802", # Function name should be lowercase
+    "N803", # Argument name should be lowercase
+    "N806", # Variable name should be lowercase
+    "N815", # Variable in class scope should not be mixedCase.
 
     # Imports and type annotations
     "ANN003",  # Missing type annotation for kwargs
