@@ -54,6 +54,7 @@ jobs:
           merge-multiple: true
       - name: Combine coverage & fail if it's <100%.
         run: |
+          python -Im coverage run
           python -Im coverage combine
 
           #python -Im coverage html --skip-covered --skip-empty
