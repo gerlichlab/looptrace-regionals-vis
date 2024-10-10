@@ -1,5 +1,9 @@
 """Colors used for data visualisation"""
 
-INDIGO = "#332288"  # for unfiltered
-PALE_SKY_BLUE = "#88CCEE"  # for too-proximal
-PALE_RED_CLAY = "#CC6677"  # for proximity-filtered, nuclei retained
+__all__ = ["IBM_BLUE", "IBM_PURPLE", "IBM_PINK", "IBM_ORANGE", "IBM_YELLOW"]
+
+IBM_BLUE = "#648FFF"  # for merge contributors
+IBM_PURPLE = "#785EF0"  # for proximity discards
+IBM_PINK = "#DC267F"  # for accepted singletons
+IBM_ORANGE = "#FE6100"  # for non-nuclear
+IBM_YELLOW = "FFB000"  # for accepted mergers

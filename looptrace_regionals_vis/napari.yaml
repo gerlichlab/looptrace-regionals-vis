@@ -7,7 +7,7 @@ contributions:
   readers:
   - command: looptrace-regionals-vis.read_looptrace_regional_points
     filename_patterns:
-    - '*_rois.csv'
-    - '*_rois.proximity_filtered.csv'
-    - '*_rois.proximity_filtered.nuclei_filtered.csv'
+    - '*_rois.merge_contributors.csv'
+    - '*_rois.proximity_rejected.csv'
+    - '*_rois.proximity_accepted.nuclei_labeled.csv'
     accepts_directories: true
