@@ -28,7 +28,7 @@ Y_COLUMN = "yc"
 X_COLUMN = "xc"
 BOX_CENTER_COLUMN_NAMES = [Z_COLUMN, Y_COLUMN, X_COLUMN]
 TIME_COLUMN = "timepoint"
-CHANNEL_COLUMN = "channel"
+CHANNEL_COLUMN = "spotChannel"
 
 
 class InputFileContentType(Enum):
