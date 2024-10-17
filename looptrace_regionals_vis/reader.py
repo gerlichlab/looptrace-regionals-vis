@@ -155,7 +155,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                             [[timepoint, channel, *_point_to_list(pt)] for pt in [q1, q2, q3, q4]]
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
-                logging.debug("Point count for file type %s: %d", file_type.name, len(corners))
+                logging.debug("Point count for ROI type %s: %d", roi_type.name, len(corners))
                 params: dict[str, object] = {
                     "name": roi_type.name,
                     "shape_type": shapes,
