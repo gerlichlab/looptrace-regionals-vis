@@ -7,18 +7,30 @@ from pathlib import Path
 import pytest
 
 from looptrace_regionals_vis import get_package_examples_folder, list_package_example_files
-from looptrace_regionals_vis.reader import InputFileContentType, RoiType, get_reader
+from looptrace_regionals_vis.reader import InputFileContentType, get_reader
+from looptrace_regionals_vis.roi import (
+    MergeContributorRoi,
+    MergedRoi,
+    NonNuclearRoi,
+    ProximityRejectedRoi,
+    RegionOfInterest,
+    SingletonRoi,
+)
 
 EXAMPLE_FILES: list[Path] = list_package_example_files()
-ROI_TYPES_BY_FILE_TYPE: dict[InputFileContentType, set[RoiType]] = {
-    InputFileContentType.MergeContributors: {RoiType.MergeContributor},
-    InputFileContentType.ProximityRejects: {RoiType.DiscardForProximity},
+ROI_TYPES_BY_FILE_TYPE: dict[InputFileContentType, set[RegionOfInterest]] = {
+    InputFileContentType.MergeContributors: {MergeContributorRoi},
+    InputFileContentType.ProximityRejects: {ProximityRejectedRoi},
     InputFileContentType.NucleiLabeled: {
-        RoiType.AcceptedSingleton,
-        RoiType.DiscardForNonNuclearity,
-        RoiType.AcceptedMerger,
+        NonNuclearRoi,
+        SingletonRoi,
+        MergedRoi,
     },
 }
+
+NUM_ROI_TYPES = len(
+    [MergeContributorRoi, ProximityRejectedRoi, NonNuclearRoi, SingletonRoi, MergedRoi]
+)
 
 
 def test_cannot_read_list_of_files():
@@ -64,8 +76,8 @@ def test_non_csv_files_are_skipped(tmp_path, wrap, paths_to_mutate):
     read_data = get_reader(wrap(tmp_path))
     layers = read_data(tmp_path)
 
-    # Input data means every RoiType should be found.
-    assert len(layers) == len(RoiType) - expected_roi_type_loss
+    # Input data means every ROI type should be found.
+    assert len(layers) == NUM_ROI_TYPES - expected_roi_type_loss
 
 
 @pytest.mark.parametrize("wrap", [str, Path])
@@ -77,8 +89,8 @@ def test_csv_with_unparsable_data_processing_status_is_skipped(tmp_path, wrap):
     read_data = get_reader(wrap(tmp_path))
     layers = read_data(tmp_path)
 
-    # Input data means every RoiType should be found.
-    assert len(layers) == len(RoiType)
+    # Input data means every ROI type should be found.
+    assert len(layers) == NUM_ROI_TYPES
 
 
 @pytest.mark.parametrize("wrap", [str, Path])

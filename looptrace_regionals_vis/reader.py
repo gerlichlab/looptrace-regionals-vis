@@ -8,27 +8,29 @@ from enum import Enum
 from pathlib import Path
 from typing import Literal, Optional
 
-import numpy as np
 import pandas as pd
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from .bounding_box import BoundingBox3D
-from .colors import IBM_BLUE, IBM_ORANGE, IBM_PINK, IBM_PURPLE, IBM_YELLOW
 from .point import FloatLike, Point3D
-from .types import LayerParams, PathOrPaths
+from .roi import MergeContributorRoi, MergedRoi, NonNuclearRoi, ProximityRejectedRoi, SingletonRoi
+from .types import Channel, LayerParams, NucleusNumber, PathOrPaths, RoiIndex, Timepoint
 
+# Aliases
 FullDataLayer = tuple[list[list[list[int | FloatLike]]], LayerParams, Literal["shapes"]]
+IdAndContributors = tuple[RoiIndex, list[RoiIndex]]
 Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
-
-SHAPE_PARAMS_KEY = "shape_type"
-COLOR_PARAMS_KEY = "edge_color"
+# Constants
 Z_COLUMN = "zc"
 Y_COLUMN = "yc"
 X_COLUMN = "xc"
 BOX_CENTER_COLUMN_NAMES = [Z_COLUMN, Y_COLUMN, X_COLUMN]
-TIME_COLUMN = "timepoint"
 CHANNEL_COLUMN = "spotChannel"
+COLOR_PARAMS_KEY = "edge_color"
+SHAPE_PARAMS_KEY = "shape_type"
+TEXT_SIZE = 5
+TIME_COLUMN = "timepoint"
 
 
 class InputFileContentType(Enum):
@@ -57,21 +59,6 @@ class InputFileContentType(Enum):
     def from_filepath(cls, fp: Path) -> Optional["InputFileContentType"]:
         """Attempt to infer processing status from given filepath."""
         return cls.from_filename(fp.name)
-
-
-class RoiType(Enum):
-    """The type of ROI to display, and in which color"""
-
-    MergeContributor = IBM_BLUE
-    DiscardForProximity = IBM_PURPLE
-    DiscardForNonNuclearity = IBM_ORANGE
-    AcceptedSingleton = IBM_PINK
-    AcceptedMerger = IBM_YELLOW
-
-    @property
-    def color(self) -> str:
-        """More reader-friendly alias for accessing the color associated with the ROI type"""
-        return self.value
 
 
 @doc(
@@ -124,44 +111,75 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
 
         for file_type, file_path in file_by_kind.items():
             logging.debug("Processing data for file type %s: %s", file_type.name, file_path)
-            time_channel_location_trios: list[
-                tuple[int | FloatLike, int | FloatLike, BoundingBox3D]
-            ]
-            if file_type == InputFileContentType.NucleiLabeled:
-                time_channel_location_trios_by_roi_type = _parse_non_contributor_non_proximal_rois(
-                    file_path
-                )
+            if file_type == InputFileContentType.MergeContributors:
+                rois_by_type = {
+                    MergeContributorRoi: [
+                        _parse_merge_contributor_record(row)
+                        for _, row in pd.read_csv(file_path).iterrows()
+                    ]
+                }
+            elif file_type == InputFileContentType.NucleiLabeled:
+                rois_by_type = {}
+                for roi in _parse_non_contributor_non_proximal_rois(file_path):
+                    rois_by_type.setdefault(type(roi), []).append(roi)
+            elif file_type == InputFileContentType.ProximityRejects:
+                rois_by_type = {
+                    ProximityRejectedRoi: [
+                        ProximityRejectedRoi(timepoint=t, channel=c, bounding_box=b)
+                        for t, c, b in parse_boxes(file_path)
+                    ]
+                }
             else:
-                time_channel_location_trios = parse_boxes(file_path)
-                if file_type == InputFileContentType.MergeContributors:
-                    rt = RoiType.MergeContributor
-                elif file_type == InputFileContentType.ProximityRejects:
-                    rt = RoiType.DiscardForProximity
-                else:
-                    raise RuntimeError(
-                        f"Unexpected file type (can't determine ROI type)! {file_type}"
-                    )
-                time_channel_location_trios_by_roi_type = {rt: time_channel_location_trios}
+                raise RuntimeError(f"Unexpected file type (can't determine ROI type)! {file_type}")
 
-            for (
-                roi_type,
-                time_channel_location_trios,
-            ) in time_channel_location_trios_by_roi_type.items():
+            for roi_type, rois in rois_by_type.items():
+                get_text_color = lambda: rois[0].color  # noqa: B023
                 corners: list[list[list[int | FloatLike]]] = []
                 shapes: list[str] = []
-                for timepoint, channel, box in time_channel_location_trios:
-                    for q1, q2, q3, q4, is_center_slice in box.iter_z_slices_nonnegative():
+                for roi in rois:
+                    for (
+                        q1,
+                        q2,
+                        q3,
+                        q4,
+                        is_center_slice,
+                    ) in roi.bounding_box.iter_z_slices_nonnegative():
                         corners.append(
-                            [[timepoint, channel, *_point_to_list(pt)] for pt in [q1, q2, q3, q4]]
+                            [
+                                [roi.timepoint, roi.channel, *_point_to_list(pt)]
+                                for pt in [q1, q2, q3, q4]
+                            ]
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
-                logging.debug("Point count for ROI type %s: %d", roi_type.name, len(corners))
+                logging.debug("Point count for ROI type %s: %d", roi.typename, len(shapes))
                 params: dict[str, object] = {
-                    "name": roi_type.name,
+                    "name": roi.typename,
                     "shape_type": shapes,
                     "face_color": "transparent",
-                    COLOR_PARAMS_KEY: roi_type.color,
+                    COLOR_PARAMS_KEY: roi.color,
                 }
+                if roi_type in [MergeContributorRoi, MergedRoi]:
+                    if roi_type == MergeContributorRoi:
+                        features = {
+                            "index": [roi.index for roi in rois],
+                            "merge_indices": [roi.merge_indices for roi in rois],
+                        }
+                        text = {
+                            "string": "{index} --> {';'.join(sorted(merge_indices))}",
+                            "size": TEXT_SIZE,
+                            "color": get_text_color(),
+                        }
+                    elif roi_type == MergedRoi:
+                        features = {
+                            "index": [roi.index for roi in rois],
+                            "contributors": [roi.contributors for roi in rois],
+                        }
+                        text = {
+                            "string": "{index} <-- {contributors}",
+                            "size": TEXT_SIZE,
+                            "color": get_text_color(),
+                        }
+                    params.update({"features": features, "text": text})
                 layers.append((corners, params, "shapes"))
 
         return layers
@@ -180,16 +198,34 @@ def _is_plausible_input_file(path: Path) -> bool:
 
 def _parse_non_contributor_non_proximal_rois(
     path: Path,
-) -> dict[RoiType, list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]]]:
-    rois_by_type: dict[RoiType, list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]]] = {}
+) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
+    rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     for _, row in pd.read_csv(path).iterrows():
-        time, channel, loc, is_singleton, is_in_nuc = _parse_nucleus_labeled_record(row)
-        if is_in_nuc:
-            key = RoiType.AcceptedSingleton if is_singleton else RoiType.AcceptedMerger
-        else:
-            key = RoiType.DiscardForNonNuclearity
-        rois_by_type.setdefault(key, []).append((time, channel, loc))
-    return rois_by_type
+        time, channel, box, maybe_nuc_num, maybe_id_and_contribs = _parse_nucleus_labeled_record(
+            row
+        )
+        match (maybe_nuc_num, maybe_id_and_contribs):
+            case (None, _):
+                roi = NonNuclearRoi(timepoint=time, channel=channel, bounding_box=box)
+            case (nuc_num, None):
+                roi = SingletonRoi(
+                    timepoint=time, channel=channel, bounding_box=box, nucleus_number=nuc_num
+                )
+            case (nuc_num, (main_id, contrib_ids)):
+                roi = MergedRoi(
+                    index=main_id,
+                    timepoint=time,
+                    channel=channel,
+                    bounding_box=box,
+                    nucleus_number=nuc_num,
+                    contributors=contrib_ids,
+                )
+            case _:
+                raise Exception(  # noqa: TRY002
+                    f"Could not determine how to build ROI! maybe_nuc_num={maybe_nuc_num}, maybe_id_and_contribs={maybe_id_and_contribs}"
+                )
+        rois.append(roi)
+    return rois
 
 
 @doc(
@@ -199,21 +235,53 @@ def _parse_non_contributor_non_proximal_rois(
 )
 def parse_boxes(  # noqa: D103
     path: Path,
-) -> list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]]:
+) -> list[tuple[Timepoint, Channel, BoundingBox3D]]:
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
     spot_data = pd.read_csv(
         path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN]
     )
-    time_channel_location_trios: list[tuple[int | FloatLike, int | FloatLike, BoundingBox3D]] = [
+    time_channel_location_trios: list[tuple[Timepoint, Channel, BoundingBox3D]] = [
         _parse_time_channel_box_trio(record) for _, record in spot_data.iterrows()
     ]
     return time_channel_location_trios
 
 
+def _parse_merge_contributor_record(
+    record: pd.Series,  # type: ignore[type-arg]
+) -> MergeContributorRoi:
+    record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
+    index: RoiIndex = record["index"]
+    merge_indices: set[RoiIndex] = {int(i) for i in record["mergeIndices"].split(";")}
+    time, channel, box = _parse_time_channel_box_trio(record)
+    return MergeContributorRoi(
+        index=index, timepoint=time, channel=channel, bounding_box=box, merge_indices=merge_indices
+    )
+
+
+def _parse_nucleus_labeled_record(
+    record: pd.Series,  # type: ignore[type-arg]
+) -> tuple[Timepoint, Channel, BoundingBox3D, Optional[NucleusNumber], Optional[IdAndContributors]]:
+    record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
+    raw_nuc_num: int = record["nucleusNumber"]
+    maybe_nuc_num: Optional[NucleusNumber] = (
+        None if raw_nuc_num == 0 else NucleusNumber(raw_nuc_num)
+    )
+    raw_merge_rois: object = record["mergeRois"]
+    id_and_contribs: Optional[IdAndContributors]
+    if raw_merge_rois is None or pd.isna(raw_merge_rois):
+        id_and_contribs = None
+    else:
+        roi_id: RoiIndex = record["index"]
+        contribs = [int(i) for i in raw_merge_rois.split(";")]
+        id_and_contribs = (roi_id, contribs)
+    time, channel, box = _parse_time_channel_box_trio(record)
+    return time, channel, box, maybe_nuc_num, id_and_contribs
+
+
 def _parse_time_channel_box_trio(
     record: dict[str, int | FloatLike] | pd.Series,  # type: ignore[type-arg]
-) -> tuple[int | FloatLike, int | FloatLike, BoundingBox3D]:
-    record: dict[str, int | float | np.float64] = (  # type: ignore[no-redef]
+) -> tuple[Timepoint, Channel, BoundingBox3D]:
+    record: dict[str, int | FloatLike] = (  # type: ignore[no-redef]
         record if isinstance(record, dict) else record.to_dict()
     )
     time = record.pop(TIME_COLUMN)
@@ -228,17 +296,6 @@ def _parse_time_channel_box_trio(
         xMax=record["xMax"],  # type: ignore[arg-type]
     )
     return time, channel, box
-
-
-def _parse_nucleus_labeled_record(
-    record: pd.Series,  # type: ignore[type-arg]
-) -> tuple[int | FloatLike, int | FloatLike, BoundingBox3D, bool, bool]:
-    record: dict[str, int | float | np.float64] = record.to_dict()  # type: ignore[no-redef]
-    nuc_num: int = record["nucleusNumber"]
-    in_nuc: bool = nuc_num != 0
-    is_singleton: bool = record["mergeRois"] is None or pd.isna(record["mergeRois"])
-    time, channel, box = _parse_time_channel_box_trio(record)
-    return time, channel, box, is_singleton, in_nuc
 
 
 @doc(
