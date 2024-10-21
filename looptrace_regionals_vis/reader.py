@@ -121,11 +121,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
             elif file_type == InputFileContentType.NucleiLabeled:
                 rois_by_type = {}
                 for roi in _parse_non_contributor_non_proximal_rois(file_path):
-                    rois_by_type.setdefault(type(roi), []).append(roi)
+                    # Ignore type check here since we can't properly disambiguate the subcases
+                    # w.r.t. ROI type.
+                    rois_by_type.setdefault(type(roi), []).append(roi)  # type: ignore[arg-type]
             elif file_type == InputFileContentType.ProximityRejects:
                 rois_by_type = {
-                    ProximityRejectedRoi: [
-                        ProximityRejectedRoi(timepoint=t, channel=c, bounding_box=b)
+                    ProximityRejectedRoi: [  # type: ignore[dict-item]
+                        ProximityRejectedRoi(timepoint=t, channel=c, bounding_box=b)  # type: ignore[misc]
                         for t, c, b in parse_boxes(file_path)
                     ]
                 }
@@ -133,10 +135,10 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                 raise RuntimeError(f"Unexpected file type (can't determine ROI type)! {file_type}")
 
             for roi_type, rois in rois_by_type.items():
-                get_text_color = lambda: rois[0].color  # noqa: B023
+                get_text_color: Callable[[], str] = lambda: rois[0].color  # noqa: B023
                 corners: list[list[list[int | FloatLike]]] = []
                 shapes: list[str] = []
-                for roi in rois:
+                for roi in rois:  # type: ignore[assignment]
                     for (
                         q1,
                         q2,
@@ -222,21 +224,25 @@ def _parse_non_contributor_non_proximal_rois(
         time, channel, box, maybe_nuc_num, maybe_id_and_contribs = _parse_nucleus_labeled_record(
             row
         )
+        roi: NonNuclearRoi | SingletonRoi | MergedRoi
         match (maybe_nuc_num, maybe_id_and_contribs):
             case (None, _):
                 roi = NonNuclearRoi(timepoint=time, channel=channel, bounding_box=box)
             case (nuc_num, None):
                 roi = SingletonRoi(
-                    timepoint=time, channel=channel, bounding_box=box, nucleus_number=nuc_num
-                )
-            case (nuc_num, (main_id, contrib_ids)):
-                roi = MergedRoi(
-                    id=main_id,
                     timepoint=time,
                     channel=channel,
                     bounding_box=box,
-                    nucleus_number=nuc_num,
-                    contributors=contrib_ids,
+                    nucleus_number=nuc_num,  # type: ignore[arg-type]
+                )
+            case (nuc_num, (main_id, contrib_ids)):
+                roi = MergedRoi(
+                    id=main_id,  # type: ignore[arg-type]
+                    timepoint=time,
+                    channel=channel,
+                    bounding_box=box,
+                    nucleus_number=nuc_num,  # type: ignore[arg-type]
+                    contributors=contrib_ids,  # type: ignore[arg-type]
                 )
             case _:
                 raise Exception(  # noqa: TRY002
@@ -269,12 +275,17 @@ def _parse_merge_contributor_record(
 ) -> MergeContributorRoi:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
     index: RoiId = record["index"]
-    raw_merge_indices = record["mergeIndices"]
-    if not isinstance(raw_merge_indices, str):
+    merge_column_name = "mergeIndices"
+    raw_merge_indices = record[merge_column_name]
+    merge_indices: set[RoiId]
+    if isinstance(raw_merge_indices, RoiId):
+        merge_indices = {raw_merge_indices}
+    elif isinstance(raw_merge_indices, str):
+        merge_indices = {int(i) for i in raw_merge_indices.split(";")}
+    else:
         raise TypeError(
-            f"Got {type(raw_merge_indices)}, not str, from 'mergeIndices': {raw_merge_indices}"
+            f"Got {type(raw_merge_indices)}, not str or int, from '{merge_column_name}': {raw_merge_indices}"
         )
-    merge_indices: set[RoiId] = {int(i) for i in record["mergeIndices"].split(";")}
     time, channel, box = _parse_time_channel_box_trio(record)
     return MergeContributorRoi(
         id=index, timepoint=time, channel=channel, bounding_box=box, merge_indices=merge_indices
@@ -289,13 +300,22 @@ def _parse_nucleus_labeled_record(
     maybe_nuc_num: Optional[NucleusNumber] = (
         None if raw_nuc_num == 0 else NucleusNumber(raw_nuc_num)
     )
-    raw_merge_rois: object = record["mergeRois"]
+    merge_column_name = "mergeRois"
+    raw_merge_indices: object = record[merge_column_name]
     id_and_contribs: Optional[IdAndContributors]
-    if raw_merge_rois is None or pd.isna(raw_merge_rois):
+    if raw_merge_indices is None or pd.isna(raw_merge_indices):  # type: ignore[call-overload]
         id_and_contribs = None
     else:
         roi_id: RoiId = record["index"]
-        contribs = {int(i) for i in raw_merge_rois.split(";")}
+        contribs: set[RoiId]
+        if isinstance(raw_merge_indices, RoiId):
+            contribs = {raw_merge_indices}
+        elif isinstance(raw_merge_indices, str):
+            contribs = {int(i) for i in raw_merge_indices.split(";")}
+        else:
+            raise TypeError(
+                f"Got {type(raw_merge_indices)}, not str or int, from '{merge_column_name}': {raw_merge_indices}"
+            )
         id_and_contribs = (roi_id, contribs)
     time, channel, box = _parse_time_channel_box_trio(record)
     return time, channel, box, maybe_nuc_num, id_and_contribs
@@ -318,7 +338,7 @@ def _parse_time_channel_box_trio(
         xMin=record["xMin"],  # type: ignore[arg-type]
         xMax=record["xMax"],  # type: ignore[arg-type]
     )
-    return time, channel, box
+    return time, channel, box  # type: ignore[return-value]
 
 
 @doc(

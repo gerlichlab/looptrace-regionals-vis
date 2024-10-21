@@ -123,6 +123,7 @@ ignore = [
     "N803", # Argument name should be lowercase
     "N806", # Variable name should be lowercase
     "N815", # Variable in class scope should not be mixedCase.
+    "E731", # Do not assign a `lambda` expression, use a `def`
 
     # Imports and type annotations
     "ANN003",  # Missing type annotation for kwargs
