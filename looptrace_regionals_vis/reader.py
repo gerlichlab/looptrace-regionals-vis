@@ -3,10 +3,10 @@
 import dataclasses
 import logging
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Literal, Optional
+from typing import Literal, Optional
 
 import pandas as pd
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
@@ -29,7 +29,7 @@ BOX_CENTER_COLUMN_NAMES = [Z_COLUMN, Y_COLUMN, X_COLUMN]
 CHANNEL_COLUMN = "spotChannel"
 COLOR_PARAMS_KEY = "edge_color"
 SHAPE_PARAMS_KEY = "shape_type"
-TEXT_SIZE = 5
+TEXT_SIZE = 8
 TIME_COLUMN = "timepoint"
 
 
@@ -66,7 +66,7 @@ class InputFileContentType(Enum):
     parameters=dict(path="Path to file with data to visualise"),
     returns="If the given value can be used by this plugin, a parser function; otherwise, a null value",
 )
-def get_reader(path: PathOrPaths) -> Optional[Reader]:
+def get_reader(path: PathOrPaths) -> Optional[Reader]: # noqa: PLR0915
     """Get a single-file parser with which to build layer data."""
 
     def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
@@ -159,31 +159,31 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                     COLOR_PARAMS_KEY: roi.color,
                 }
                 if roi_type in [MergeContributorRoi, MergedRoi]:
+                    format_string: str
+                    features: dict[str, object] = {}
+                    ids, labels = zip(
+                        *[
+                            (roi_id, roi_text)
+                            for roi in rois
+                            for roi_id, roi_text in _create_roi_id_text_pairs(roi)
+                        ], strict=False
+                    )
                     if roi_type == MergeContributorRoi:
-                        features = {
-                            "id": [roi.id for roi in rois],
-                            "merged_outputs": [
-                                text for roi in rois for text in _create_roi_ids_texts(roi)
-                            ],
-                        }
-                        text = {
-                            "string": "{id} --> {merged_outputs}",
-                            "size": TEXT_SIZE,
-                            "color": get_text_color(),
-                        }
+                        format_string = "{id} --> {merged_outputs}"
+                        features = {"id": ids, "merged_outputs": labels}
                     elif roi_type == MergedRoi:
-                        features = {
-                            "id": [roi.id for roi in rois],
-                            "contributors": [
-                                ";".join(str(i) for i in sorted(roi.contributors)) for roi in rois
-                            ],
-                        }
-                        text = {
-                            "string": "{id} <-- {contributors}",
-                            "size": TEXT_SIZE,
-                            "color": get_text_color(),
-                        }
-                    params.update({"features": features, "text": text})
+                        format_string = "{id} <-- {contributors}"
+                        features = {"id": ids, "contributors": labels}
+                    else:
+                        raise RuntimeError(
+                            f"Could not determine how to build text for ROI layer of type {roi_type}"
+                        )
+                    text_properties: dict[str, object] = {
+                        "string": format_string,
+                        "size": TEXT_SIZE,
+                        "color": get_text_color(),
+                    }
+                    params.update({"features": features, "text": text_properties})
                 layers.append((corners, params, "shapes"))
 
         return layers
@@ -191,7 +191,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
     return build_layers
 
 
-def _create_roi_ids_texts(roi: MergeContributorRoi | MergedRoi) -> Iterable[str]:
+def _create_roi_id_text_pairs(roi: MergeContributorRoi | MergedRoi) -> Iterable[tuple[RoiId, str]]:
     indices: set[RoiId]
     if isinstance(roi, MergeContributorRoi):
         indices = roi.merge_indices
@@ -201,7 +201,7 @@ def _create_roi_ids_texts(roi: MergeContributorRoi | MergedRoi) -> Iterable[str]
         raise TypeError(f"Cannot create ROI IDs text for value of type {type(roi).__name__}")
     text = ";".join(map(str, sorted(indices)))
     for _ in roi.bounding_box.iter_z_slices_nonnegative():
-        yield text
+        yield roi.id, text
 
 
 @doc(
