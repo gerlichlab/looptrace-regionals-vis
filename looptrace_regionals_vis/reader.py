@@ -66,7 +66,7 @@ class InputFileContentType(Enum):
     parameters=dict(path="Path to file with data to visualise"),
     returns="If the given value can be used by this plugin, a parser function; otherwise, a null value",
 )
-def get_reader(path: PathOrPaths) -> Optional[Reader]: # noqa: PLR0915
+def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
     """Get a single-file parser with which to build layer data."""
 
     def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
@@ -166,7 +166,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]: # noqa: PLR0915
                             (roi_id, roi_text)
                             for roi in rois
                             for roi_id, roi_text in _create_roi_id_text_pairs(roi)
-                        ], strict=False
+                        ],
+                        strict=False,
                     )
                     if roi_type == MergeContributorRoi:
                         format_string = "{id} --> {merged_outputs}"

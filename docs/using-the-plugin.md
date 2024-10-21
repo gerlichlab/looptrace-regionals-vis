@@ -23,13 +23,16 @@ The Napari window should have three sliders:
 To support the possibility of detecting and visualising spots in multiple channels, we retain data from all imaging channels. We also keep all imaging timepoints for the moment (not just those with regional spot detection), though that may change. 
 
 The spots are color-coded:
-* _Blue_: merge contributor
-* _Purple_: discarded on account of being too close together
+* _Blue_: discarded on account of being too close together
 * _Orange_: discarded on account of not being in a nucleus
 * _Pink_: individual (unmerged), and retained
+* _Purple_: merge contributor
 * _Yellow_: resulting from a merge, and retained
 
 Spot shape differs by $z$-slice; the $z$-slice closest to the truncated $z$-coordinate of the spot's centroid will be square while everywhere else will be circular. We do not add $z$ slices for spots for which the bounding box extends below $0$, but there can be $z$ slices "beyond" the true images, if a spot was detected close to the max $z$ depth. This may also change in a future release.
+
+For the ROIs/spots _resulting from_ a merger, you should see the ID of the ROI itself and the IDs of those which were merged to create it. 
+For the ROIs/spots _contributing to_ a merger, you should see the ID of the ROI itself and the ID(s) of the ROI(s) to which it contributed.
 
 ### Necessary data files
 1. 1 ZARR per field of view you wish to view, named like `P0001.zarr`

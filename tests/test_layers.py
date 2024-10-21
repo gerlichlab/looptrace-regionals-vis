@@ -22,8 +22,8 @@ def test_shapes_are_as_expected():
 def test_colors_are_as_expected():
     # Input data means every ROI type should be found.
     exp_color_by_name = {
-        MergeContributorRoi.__name__: IBM_BLUE,
-        ProximityRejectedRoi.__name__: IBM_PURPLE,
+        MergeContributorRoi.__name__: IBM_PURPLE,
+        ProximityRejectedRoi.__name__: IBM_BLUE,
         NonNuclearRoi.__name__: IBM_ORANGE,
         SingletonRoi.__name__: IBM_PINK,
         MergedRoi.__name__: IBM_YELLOW,

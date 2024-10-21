@@ -35,7 +35,7 @@ class MergeContributorRoi(RegionOfInterest):
     @property
     def color(self) -> str:
         """A merge contributor ROI is blue."""
-        return IBM_BLUE
+        return IBM_PURPLE
 
     def __post_init__(self) -> None:
         if self.id in self.merge_indices:
@@ -55,7 +55,7 @@ class ProximityRejectedRoi(RegionOfInterest):
     @property
     def color(self) -> str:
         """A ROI rejected on account of proximity is purple."""
-        return IBM_PURPLE
+        return IBM_BLUE
 
 
 @dataclass(kw_only=True, frozen=True)
