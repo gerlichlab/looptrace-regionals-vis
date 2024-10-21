@@ -5,7 +5,7 @@ from typing import Protocol
 
 from .bounding_box import BoundingBox3D
 from .colors import IBM_BLUE, IBM_ORANGE, IBM_PINK, IBM_PURPLE, IBM_YELLOW
-from .types import Channel, NucleusNumber, RoiIndex, Timepoint
+from .types import Channel, NucleusNumber, RoiId, Timepoint
 
 
 class RegionOfInterest(Protocol):
@@ -26,11 +26,11 @@ class RegionOfInterest(Protocol):
 class MergeContributorRoi(RegionOfInterest):
     """A ROI which contributed to a merge"""
 
-    index: RoiIndex
+    id: RoiId
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
-    merge_indices: set[RoiIndex]
+    merge_indices: set[RoiId]
 
     @property
     def color(self) -> str:
@@ -38,7 +38,7 @@ class MergeContributorRoi(RegionOfInterest):
         return IBM_BLUE
 
     def __post_init__(self) -> None:
-        if self.index in self.merge_indices:
+        if self.id in self.merge_indices:
             raise ValueError(
                 f"A {self.__class__.__name__}'s index can't equal be among its merge_indices"
             )
@@ -91,23 +91,23 @@ class SingletonRoi(RegionOfInterest):
 class MergedRoi(RegionOfInterest):
     """A ROI which passed filters and resulted from a merge"""
 
-    index: int
+    id: RoiId
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
-    contributors: set[RoiIndex]
+    contributors: set[RoiId]
     nucleus_number: NucleusNumber
 
     def __post_init__(self) -> None:
-        if not isinstance(self.contributors, list):
+        if not isinstance(self.contributors, set):
             raise TypeError(
-                f"For a {self.__class__.__name__}, contributors must be list, not {type(self.contributors).__name__}"
+                f"For a {self.__class__.__name__}, contributors must be set, not {type(self.contributors).__name__}"
             )
         if len(self.contributors) < 2:  # noqa: PLR2004
             raise ValueError(
                 f"A {self.__class__.__name__} must have at least 2 contributors, got {len(self.contributors)}"
             )
-        if self.index in self.contributors:
+        if self.id in self.contributors:
             raise ValueError(
                 f"A {self.__class__.__name__}'s index can't be in its collection of contributors"
             )

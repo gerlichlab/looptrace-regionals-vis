@@ -10,7 +10,7 @@ FloatLike = float | np.float64
 LayerParams = dict[str, object]
 PathLike = str | Path
 PathOrPaths = PathLike | list[PathLike]
-RoiIndex = int
+RoiId = int
 Timepoint = int
 
 

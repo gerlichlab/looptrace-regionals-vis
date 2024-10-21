@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Iterable, Literal, Optional
 
 import pandas as pd
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
@@ -14,11 +14,11 @@ from numpydoc_decorator import doc  # type: ignore[import-untyped]
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .roi import MergeContributorRoi, MergedRoi, NonNuclearRoi, ProximityRejectedRoi, SingletonRoi
-from .types import Channel, LayerParams, NucleusNumber, PathOrPaths, RoiIndex, Timepoint
+from .types import Channel, LayerParams, NucleusNumber, PathOrPaths, RoiId, Timepoint
 
 # Aliases
 FullDataLayer = tuple[list[list[list[int | FloatLike]]], LayerParams, Literal["shapes"]]
-IdAndContributors = tuple[RoiIndex, list[RoiIndex]]
+IdAndContributors = tuple[RoiId, set[RoiId]]
 Reader = Callable[[PathOrPaths], list[FullDataLayer]]
 
 # Constants
@@ -161,21 +161,25 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 if roi_type in [MergeContributorRoi, MergedRoi]:
                     if roi_type == MergeContributorRoi:
                         features = {
-                            "index": [roi.index for roi in rois],
-                            "merge_indices": [roi.merge_indices for roi in rois],
+                            "id": [roi.id for roi in rois],
+                            "merged_outputs": [
+                                text for roi in rois for text in _create_roi_ids_texts(roi)
+                            ],
                         }
                         text = {
-                            "string": "{index} --> {';'.join(sorted(merge_indices))}",
+                            "string": "{id} --> {merged_outputs}",
                             "size": TEXT_SIZE,
                             "color": get_text_color(),
                         }
                     elif roi_type == MergedRoi:
                         features = {
-                            "index": [roi.index for roi in rois],
-                            "contributors": [roi.contributors for roi in rois],
+                            "id": [roi.id for roi in rois],
+                            "contributors": [
+                                ";".join(str(i) for i in sorted(roi.contributors)) for roi in rois
+                            ],
                         }
                         text = {
-                            "string": "{index} <-- {contributors}",
+                            "string": "{id} <-- {contributors}",
                             "size": TEXT_SIZE,
                             "color": get_text_color(),
                         }
@@ -185,6 +189,19 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
         return layers
 
     return build_layers
+
+
+def _create_roi_ids_texts(roi: MergeContributorRoi | MergedRoi) -> Iterable[str]:
+    indices: set[RoiId]
+    if isinstance(roi, MergeContributorRoi):
+        indices = roi.merge_indices
+    elif isinstance(roi, MergedRoi):
+        indices = roi.contributors
+    else:
+        raise TypeError(f"Cannot create ROI IDs text for value of type {type(roi).__name__}")
+    text = ";".join(map(str, sorted(indices)))
+    for _ in roi.bounding_box.iter_z_slices_nonnegative():
+        yield text
 
 
 @doc(
@@ -213,7 +230,7 @@ def _parse_non_contributor_non_proximal_rois(
                 )
             case (nuc_num, (main_id, contrib_ids)):
                 roi = MergedRoi(
-                    index=main_id,
+                    id=main_id,
                     timepoint=time,
                     channel=channel,
                     bounding_box=box,
@@ -250,11 +267,16 @@ def _parse_merge_contributor_record(
     record: pd.Series,  # type: ignore[type-arg]
 ) -> MergeContributorRoi:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
-    index: RoiIndex = record["index"]
-    merge_indices: set[RoiIndex] = {int(i) for i in record["mergeIndices"].split(";")}
+    index: RoiId = record["index"]
+    raw_merge_indices = record["mergeIndices"]
+    if not isinstance(raw_merge_indices, str):
+        raise TypeError(
+            f"Got {type(raw_merge_indices)}, not str, from 'mergeIndices': {raw_merge_indices}"
+        )
+    merge_indices: set[RoiId] = {int(i) for i in record["mergeIndices"].split(";")}
     time, channel, box = _parse_time_channel_box_trio(record)
     return MergeContributorRoi(
-        index=index, timepoint=time, channel=channel, bounding_box=box, merge_indices=merge_indices
+        id=index, timepoint=time, channel=channel, bounding_box=box, merge_indices=merge_indices
     )
 
 
@@ -271,8 +293,8 @@ def _parse_nucleus_labeled_record(
     if raw_merge_rois is None or pd.isna(raw_merge_rois):
         id_and_contribs = None
     else:
-        roi_id: RoiIndex = record["index"]
-        contribs = [int(i) for i in raw_merge_rois.split(";")]
+        roi_id: RoiId = record["index"]
+        contribs = {int(i) for i in raw_merge_rois.split(";")}
         id_and_contribs = (roi_id, contribs)
     time, channel, box = _parse_time_channel_box_trio(record)
     return time, channel, box, maybe_nuc_num, id_and_contribs
