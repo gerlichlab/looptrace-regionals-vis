@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+This is compatible with the 0.11.x line of `looptrace`.
+
+### Added
+* Now the joint tracing structure of ROIs from different regional barcodes / imaging timepoints can be visualised.
+
+### Changed
+* Adapted to new `looptrace` column names
+
 ## [v0.2.0] - 2024-10-21
+* This is compatible with the 0.10.x line line of `looptrace`.
 
 ### Changed
 * Patterns expected for input files:

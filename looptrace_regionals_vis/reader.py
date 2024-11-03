@@ -275,7 +275,7 @@ def _parse_merge_contributor_record(
 ) -> MergeContributorRoi:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
     index: RoiId = record["index"]
-    merge_column_name = "mergeIndices"
+    merge_column_name = "mergeOutputs"
     raw_merge_indices = record[merge_column_name]
     merge_indices: set[RoiId]
     if isinstance(raw_merge_indices, RoiId):
@@ -300,7 +300,7 @@ def _parse_nucleus_labeled_record(
     maybe_nuc_num: Optional[NucleusNumber] = (
         None if raw_nuc_num == 0 else NucleusNumber(raw_nuc_num)
     )
-    merge_column_name = "mergeRois"
+    merge_column_name = "mergePartners"
     raw_merge_indices: object = record[merge_column_name]
     id_and_contribs: Optional[IdAndContributors]
     if raw_merge_indices is None or pd.isna(raw_merge_indices):  # type: ignore[call-overload]
