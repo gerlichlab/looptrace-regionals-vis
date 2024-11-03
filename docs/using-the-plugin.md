@@ -51,4 +51,4 @@ For the ROIs/spots _contributing to_ a merger, you should see the ID of the ROI 
 * The bounding box is defined by columns suffixed `Min` and `Max` for each axis, e.g. `zMin`, `zMax`, etc.
 * The timepoint is read from column `timepoint`.
 * The channel is read from the `channel` column.
-* For the `*_rois.proximity_accepted.nuclei_labeled.csv` file, `mergeRois` and `nucleusNumber` columns are parsed.
+* For the `*_rois.proximity_accepted.nuclei_labeled.csv` file, `mergePartners` and `nucleusNumber` columns are parsed.
