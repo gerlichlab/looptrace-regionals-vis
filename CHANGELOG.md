@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 This is compatible with the 0.11.x line of `looptrace`.
 
+### Changed
+* Updated expected column and file names of input to match those emitted by `looptrace` processing
+
 ### Added
 * Now the joint tracing structure of ROIs from different regional barcodes / imaging timepoints can be visualised.
 
