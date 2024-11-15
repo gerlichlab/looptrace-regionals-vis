@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Callable, Iterable
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeAlias
 
 import pandas as pd
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
@@ -195,14 +195,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
 
 def _create_roi_id_text_pairs(roi: MergeContributorRoi | MergedRoi) -> Iterable[tuple[RoiId, str]]:
-    indices: set[RoiId]
+    text: str
     if isinstance(roi, MergeContributorRoi):
-        indices = roi.merge_indices
+        text = str(roi.merge_index)
     elif isinstance(roi, MergedRoi):
-        indices = roi.contributors
+        text = ";".join(map(str, sorted(roi.contributors)))
     else:
         raise TypeError(f"Cannot create ROI IDs text for value of type {type(roi).__name__}")
-    text = ";".join(map(str, sorted(indices)))
     for _ in roi.bounding_box.iter_z_slices_nonnegative():
         yield roi.id, text
 
@@ -275,20 +274,21 @@ def _parse_merge_contributor_record(
 ) -> MergeContributorRoi:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
     index: RoiId = record["index"]
-    merge_column_name = "mergeOutputs"
-    raw_merge_indices = record[merge_column_name]
-    merge_indices: set[RoiId]
-    if isinstance(raw_merge_indices, RoiId):
-        merge_indices = {raw_merge_indices}
-    elif isinstance(raw_merge_indices, str):
-        merge_indices = {int(i) for i in raw_merge_indices.split(";")}
+    merge_column_name = "mergeOutput"
+    raw_merge_index = record[merge_column_name]
+    MergeIdType: TypeAlias = RoiId
+    merge_index: MergeIdType
+    if isinstance(raw_merge_index, MergeIdType):
+        merge_index = raw_merge_index
+    elif isinstance(raw_merge_index, str):
+        merge_index = MergeIdType(raw_merge_index)
     else:
         raise TypeError(
-            f"Got {type(raw_merge_indices)}, not str or int, from '{merge_column_name}': {raw_merge_indices}"
+            f"Got {type(raw_merge_index)}, not str or {MergeIdType.__name__}, from '{merge_column_name}': {raw_merge_index}"
         )
     time, channel, box = _parse_time_channel_box_trio(record)
     return MergeContributorRoi(
-        id=index, timepoint=time, channel=channel, bounding_box=box, merge_indices=merge_indices
+        id=index, timepoint=time, channel=channel, bounding_box=box, merge_index=merge_index
     )
 
 

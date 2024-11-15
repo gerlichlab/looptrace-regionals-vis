@@ -30,7 +30,7 @@ class MergeContributorRoi(RegionOfInterest):
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
-    merge_indices: set[RoiId]
+    merge_index: RoiId
 
     @property
     def color(self) -> str:
@@ -38,10 +38,8 @@ class MergeContributorRoi(RegionOfInterest):
         return IBM_PURPLE
 
     def __post_init__(self) -> None:
-        if self.id in self.merge_indices:
-            raise ValueError(
-                f"A {self.__class__.__name__}'s index can't equal be among its merge_indices"
-            )
+        if self.id == self.merge_index:
+            raise ValueError(f"A {self.__class__.__name__}'s index can't equal its merge_index")
 
 
 @dataclass(kw_only=True, frozen=True)
