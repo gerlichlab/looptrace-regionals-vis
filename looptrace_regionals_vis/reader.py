@@ -39,7 +39,7 @@ class InputFileContentType(Enum):
 
     MergeContributors = ".merge_contributors.csv"
     ProximityRejects = ".proximity_rejected.csv"
-    NucleiLabeled = ".proximity_accepted.nuclei_labeled.csv"
+    NucleiLabeled = ".with_trace_ids.csv"
 
     @classmethod
     def from_filename(cls, fn: str) -> Optional["InputFileContentType"]:
