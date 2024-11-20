@@ -190,7 +190,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                         features.update(
                             {
                                 "traceId": [
-                                    r.traceId if r.trace_partners else ""  # type: ignore[attr-defined]
+                                    r.traceId.get if r.trace_partners else ""  # type: ignore[attr-defined]
                                     for r in rois
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
