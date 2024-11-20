@@ -39,7 +39,7 @@ For the ROIs/spots _contributing to_ a merger, you should see the ID of the ROI 
 1. 0 or 1 files of each of the following types, per field of view, organized into a folder that has the same field of view name as the ZARR, e.g. `P0001`. There must be at least 1 of these 3 files present:
     - A `*_rois.csv` file: unfiltered regional spots
     - A `*_rois.proximity_accepted.csv` file: regional spots after discarding those which are too close together
-    - A `*_rois.proximity_accepted.nuclei_labeled.csv` file: regional spots after proximity-based filtration and labeling attribution of ROIs/spots to nuclei
+    - A `*_rois.with_trace_ids.csv` file: regional spots after proximity-based filtration and labeling attribution of ROIs/spots to nuclei
 
 ### File format notes
 * For each spot, the following must be parsed:
@@ -52,7 +52,7 @@ For the ROIs/spots _contributing to_ a merger, you should see the ID of the ROI 
 * The timepoint is read from column `timepoint`.
 * The channel is read from the `channel` column.
 * For the merge contributors file, the `mergeOutput` column is parsed to get the ID of the merge result.
-* For the `*_rois.proximity_accepted.nuclei_labeled.csv` file, the following additional columns are parsed:
+* For the `*_rois.with_trace_ids.csv` file, the following additional columns are parsed:
     * `mergePartners` (to tell singleton ROIs from merger output ROIs)
     * `nucleusNumber` (to tell nuclear from non-nuclear ROIs)
     * `traceId` (to label ROIs which participate in a multi-ROI trace)

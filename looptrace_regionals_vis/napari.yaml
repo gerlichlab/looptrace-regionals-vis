@@ -9,5 +9,5 @@ contributions:
     filename_patterns:
     - '*_rois.merge_contributors.csv'
     - '*_rois.proximity_rejected.csv'
-    - '*_rois.proximity_accepted.nuclei_labeled.csv'
+    - '*_rois.with_trace_ids.csv'
     accepts_directories: true

@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [v0.3.0] - 2024-11-20
 This is compatible with the 0.11.x line of `looptrace`.
 
 ### Changed
-* Updated expected column and file names of input to match those emitted by `looptrace` processing
+* Updated expected column and file names of input to match those emitted by `looptrace` processing; 
+in particular, the file previously represented by `*_rois.proximity_accepted.nuclei_labeled.csv` is replaced by `*_rois.with_trace_ids.csv`.
 
 ### Added
 * Now the joint tracing structure of ROIs from different regional barcodes / imaging timepoints can be visualised.

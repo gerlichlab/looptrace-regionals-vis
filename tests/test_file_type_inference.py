@@ -66,6 +66,7 @@ def test_from_filepath_requires_path(arg):
             ("", ".proximity_rejected.csv", None),
             ("", ".proximity_accepted.nuclei_labeled.csv", None),
             ("", ".proximity_rejected.nuclei_labeled.csv", None),
+            ("", ".with_trace_ids.csv", None),
             ("", ".merge_contributors.csv", None),
             ("_rois", "", None),
             ("_rois", ".CSV", None),
@@ -73,7 +74,8 @@ def test_from_filepath_requires_path(arg):
             ("_rois", ".proximity_rejected.csv", InputFileContentType.ProximityRejects),
             ("_rois", ".proximity_accepted.csv", None),
             ("_rois", ".proximity_rejected.nuclei_labeled.csv", None),
-            ("_rois", ".proximity_accepted.nuclei_labeled.csv", InputFileContentType.NucleiLabeled),
+            ("_rois", ".proximity_accepted.nuclei_labeled.csv", None),
+            ("_rois", ".with_trace_ids.csv", InputFileContentType.NucleiLabeled),
             ("_rois", ".csv", None),
             ("_rois", ".nuclei_labeled.proximity_accepted.csv", None),
         ]
