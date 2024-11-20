@@ -3,12 +3,13 @@
 import dataclasses
 import logging
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
 from typing import Literal, Optional, TypeAlias
 
 import pandas as pd
+from gertils.types import TraceIdFrom0
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from .bounding_box import BoundingBox3D
@@ -66,7 +67,7 @@ class InputFileContentType(Enum):
     parameters=dict(path="Path to file with data to visualise"),
     returns="If the given value can be used by this plugin, a parser function; otherwise, a null value",
 )
-def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
+def get_reader(path: PathOrPaths) -> Optional[Reader]:
     """Get a single-file parser with which to build layer data."""
 
     def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
@@ -109,6 +110,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
         layers: list[FullDataLayer] = []
 
+        # Each file type may have a particular parse strategy.
         for file_type, file_path in file_by_kind.items():
             logging.debug("Processing data for file type %s: %s", file_type.name, file_path)
             if file_type == InputFileContentType.MergeContributors:
@@ -134,8 +136,11 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
             else:
                 raise RuntimeError(f"Unexpected file type (can't determine ROI type)! {file_type}")
 
+            # For some file types, this loop is trivial (single-element rois_by_type).
             for roi_type, rois in rois_by_type.items():
-                get_text_color: Callable[[], str] = lambda: rois[0].color  # noqa: B023
+                layer_color: str = rois[0].color
+
+                # 1. build up the points for a layer.
                 corners: list[list[list[int | FloatLike]]] = []
                 shapes: list[str] = []
                 for roi in rois:  # type: ignore[assignment]
@@ -154,56 +159,57 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
                 logging.debug("Point count for ROI type %s: %d", roi.typename, len(shapes))
+
+                # 2. Build up collection of layer parameters.
                 params: dict[str, object] = {
-                    "name": roi.typename,
+                    # We need these parameters regardless of the ROI type
+                    "name": roi_type.__name__,
                     "shape_type": shapes,
                     "face_color": "transparent",
-                    COLOR_PARAMS_KEY: roi.color,
+                    COLOR_PARAMS_KEY: layer_color,
                 }
-                if roi_type in [MergeContributorRoi, MergedRoi]:
-                    format_string: str
+
+                # 3. Add text if necessary based on ROI type.
+                # Add the merge index for merge input or output record.
+                # Add the trace ID whenever > 1 ROI is in the same trace.
+                if roi_type in [MergeContributorRoi, MergedRoi, SingletonRoi]:
+                    format_string_parts: list[str] = []
                     features: dict[str, object] = {}
-                    ids, labels = zip(
-                        *[
-                            (roi_id, roi_text)
-                            for roi in rois
-                            for roi_id, roi_text in _create_roi_id_text_pairs(roi)
-                        ],
-                        strict=False,
-                    )
-                    if roi_type == MergeContributorRoi:
-                        format_string = "{id} --> {merged_outputs}"
-                        features = {"id": ids, "merged_outputs": labels}
-                    elif roi_type == MergedRoi:
-                        format_string = "{id} <-- {contributors}"
-                        features = {"id": ids, "contributors": labels}
-                    else:
-                        raise RuntimeError(
-                            f"Could not determine how to build text for ROI layer of type {roi_type}"
+                    if roi_type in [MergeContributorRoi, MergedRoi]:
+                        features.update(
+                            {
+                                "mergeId": [
+                                    r.id if roi_type == MergedRoi else r.merge_index
+                                    for r in rois
+                                    for _ in roi.bounding_box.iter_z_slices_nonnegative()
+                                ]
+                            }
                         )
+                        format_string_parts.append("i={mergeId}")
+                    if roi_type in [MergedRoi, SingletonRoi]:
+                        features.update(
+                            {
+                                "traceId": [
+                                    r.traceId if r.trace_partners else ""  # type: ignore[attr-defined]
+                                    for r in rois
+                                    for _ in roi.bounding_box.iter_z_slices_nonnegative()
+                                ]
+                            }
+                        )
+                        format_string_parts.append("t={traceId}")
                     text_properties: dict[str, object] = {
-                        "string": format_string,
+                        "string": ", ".join(format_string_parts),
                         "size": TEXT_SIZE,
-                        "color": get_text_color(),
+                        "color": layer_color,
                     }
                     params.update({"features": features, "text": text_properties})
+
+                # 4. Add the layer to the growing collection.
                 layers.append((corners, params, "shapes"))
 
         return layers
 
     return build_layers
-
-
-def _create_roi_id_text_pairs(roi: MergeContributorRoi | MergedRoi) -> Iterable[tuple[RoiId, str]]:
-    text: str
-    if isinstance(roi, MergeContributorRoi):
-        text = str(roi.merge_index)
-    elif isinstance(roi, MergedRoi):
-        text = ";".join(map(str, sorted(roi.contributors)))
-    else:
-        raise TypeError(f"Cannot create ROI IDs text for value of type {type(roi).__name__}")
-    for _ in roi.bounding_box.iter_z_slices_nonnegative():
-        yield roi.id, text
 
 
 @doc(
@@ -220,8 +226,8 @@ def _parse_non_contributor_non_proximal_rois(
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     for _, row in pd.read_csv(path).iterrows():
-        time, channel, box, maybe_nuc_num, maybe_id_and_contribs = _parse_nucleus_labeled_record(
-            row
+        time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
+            _parse_nucleus_labeled_record(row)
         )
         roi: NonNuclearRoi | SingletonRoi | MergedRoi
         match (maybe_nuc_num, maybe_id_and_contribs):
@@ -232,6 +238,8 @@ def _parse_non_contributor_non_proximal_rois(
                     timepoint=time,
                     channel=channel,
                     bounding_box=box,
+                    traceId=traceId,
+                    trace_partners=trace_partners,
                     nucleus_number=nuc_num,  # type: ignore[arg-type]
                 )
             case (nuc_num, (main_id, contrib_ids)):
@@ -241,6 +249,8 @@ def _parse_non_contributor_non_proximal_rois(
                     channel=channel,
                     bounding_box=box,
                     nucleus_number=nuc_num,  # type: ignore[arg-type]
+                    traceId=traceId,
+                    trace_partners=trace_partners,
                     contributors=contrib_ids,  # type: ignore[arg-type]
                 )
             case _:
@@ -294,31 +304,57 @@ def _parse_merge_contributor_record(
 
 def _parse_nucleus_labeled_record(
     record: pd.Series,  # type: ignore[type-arg]
-) -> tuple[Timepoint, Channel, BoundingBox3D, Optional[NucleusNumber], Optional[IdAndContributors]]:
+) -> tuple[
+    Timepoint,
+    Channel,
+    BoundingBox3D,
+    TraceIdFrom0,
+    set[RoiId],
+    Optional[NucleusNumber],
+    Optional[IdAndContributors],
+]:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
+
+    traceId: TraceIdFrom0 = TraceIdFrom0(record["traceId"])
+    trace_partners: set[RoiId] = _parse_roi_ids_field(record, key="tracePartners")
+
     raw_nuc_num: int = record["nucleusNumber"]
     maybe_nuc_num: Optional[NucleusNumber] = (
         None if raw_nuc_num == 0 else NucleusNumber(raw_nuc_num)
     )
+
     merge_column_name = "mergePartners"
-    raw_merge_indices: object = record[merge_column_name]
     id_and_contribs: Optional[IdAndContributors]
-    if raw_merge_indices is None or pd.isna(raw_merge_indices):  # type: ignore[call-overload]
+    raw_merge_indices = record[merge_column_name]
+    if raw_merge_indices is None or raw_merge_indices == "" or pd.isna(raw_merge_indices):
         id_and_contribs = None
     else:
         roi_id: RoiId = record["index"]
-        contribs: set[RoiId]
-        if isinstance(raw_merge_indices, RoiId):
-            contribs = {raw_merge_indices}
-        elif isinstance(raw_merge_indices, str):
-            contribs = {int(i) for i in raw_merge_indices.split(";")}
-        else:
-            raise TypeError(
-                f"Got {type(raw_merge_indices)}, not str or int, from '{merge_column_name}': {raw_merge_indices}"
-            )
+        contribs = _parse_roi_ids_field(record, key=merge_column_name)
         id_and_contribs = (roi_id, contribs)
+
     time, channel, box = _parse_time_channel_box_trio(record)
-    return time, channel, box, maybe_nuc_num, id_and_contribs
+
+    return time, channel, box, traceId, trace_partners, maybe_nuc_num, id_and_contribs
+
+
+def _parse_roi_ids_field(
+    row: pd.Series,  # type: ignore[type-arg]
+    *,
+    key: str,
+    intra_field_delimiter: str = ";",
+) -> set[RoiId]:
+    raw_value: object = row[key]
+    result: set[RoiId]
+    if isinstance(raw_value, int):
+        result = {raw_value}
+    elif isinstance(raw_value, str):
+        result = set(map(int, raw_value.split(intra_field_delimiter)))
+    elif pd.isna(raw_value):  # type: ignore[call-overload]
+        result = set()
+    else:
+        raise TypeError(f"Got {type(raw_value)}, not str or int, from '{key}': {raw_value}")
+    return result
 
 
 def _parse_time_channel_box_trio(
