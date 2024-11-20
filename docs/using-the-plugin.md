@@ -31,8 +31,10 @@ The spots are color-coded:
 
 Spot shape differs by $z$-slice; the $z$-slice closest to the truncated $z$-coordinate of the spot's centroid will be square while everywhere else will be circular. We do not add $z$ slices for spots for which the bounding box extends below $0$, but there can be $z$ slices "beyond" the true images, if a spot was detected close to the max $z$ depth. This may also change in a future release.
 
-For the ROIs/spots _resulting from_ a merger, you should see the ID of the ROI itself and the IDs of those which were merged to create it. 
-For the ROIs/spots _contributing to_ a merger, you should see the ID of the ROI itself and the ID(s) of the ROI(s) to which it contributed.
+Some spots are labeled:
+* For the ROIs/spots _resulting from_ a merger, you should see the ID of the ROI itself (`i=<merge ID>`).
+* For the ROIs/spots _contributing to_ a merger, you should see the ID of the resulting merger ROI (`i=<merge ID>`).
+* For the ROIs which participate in a larger tracing structure, you should see the ID (`t=<trace ID>`).
 
 ### Necessary data files
 1. 1 ZARR per field of view you wish to view, named like `P0001.zarr`
