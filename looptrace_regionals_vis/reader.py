@@ -205,7 +205,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                     params.update({"features": features, "text": text_properties})
                     if features:
                         logging.debug(
-                            f"Feature counts: {[(k, len(vs)) for k, vs in features.items()]}"
+                            "Feature counts: %s",
+                            ", ".join(f"{k} -> {len(vs)}" for k, vs in features.items()),
                         )
 
                 # 4. Add the layer to the growing collection.
