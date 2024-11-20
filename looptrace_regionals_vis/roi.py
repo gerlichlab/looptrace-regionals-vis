@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from gertils.types import TraceIdFrom0
+
 from .bounding_box import BoundingBox3D
 from .colors import IBM_BLUE, IBM_ORANGE, IBM_PINK, IBM_PURPLE, IBM_YELLOW
 from .types import Channel, NucleusNumber, RoiId, Timepoint
@@ -77,6 +79,8 @@ class SingletonRoi(RegionOfInterest):
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
+    traceId: TraceIdFrom0
+    trace_partners: set[RoiId]  # which ROIs are part of the same trace
     nucleus_number: NucleusNumber
 
     @property
@@ -94,6 +98,8 @@ class MergedRoi(RegionOfInterest):
     channel: Channel
     bounding_box: BoundingBox3D
     contributors: set[RoiId]
+    traceId: TraceIdFrom0
+    trace_partners: set[RoiId]  # which ROIs are part of the same trace
     nucleus_number: NucleusNumber
 
     def __post_init__(self) -> None:
