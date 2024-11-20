@@ -3,7 +3,7 @@
 import dataclasses
 import logging
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Sized
 from enum import Enum
 from pathlib import Path
 from typing import Literal, Optional, TypeAlias
@@ -67,7 +67,7 @@ class InputFileContentType(Enum):
     parameters=dict(path="Path to file with data to visualise"),
     returns="If the given value can be used by this plugin, a parser function; otherwise, a null value",
 )
-def get_reader(path: PathOrPaths) -> Optional[Reader]:
+def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
     """Get a single-file parser with which to build layer data."""
 
     def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
@@ -122,10 +122,10 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 }
             elif file_type == InputFileContentType.NucleiLabeled:
                 rois_by_type = {}
-                for roi in _parse_non_contributor_non_proximal_rois(file_path):
+                for r in _parse_non_contributor_non_proximal_rois(file_path):
                     # Ignore type check here since we can't properly disambiguate the subcases
                     # w.r.t. ROI type.
-                    rois_by_type.setdefault(type(roi), []).append(roi)  # type: ignore[arg-type]
+                    rois_by_type.setdefault(type(r), []).append(r)  # type: ignore[arg-type]
             elif file_type == InputFileContentType.ProximityRejects:
                 rois_by_type = {
                     ProximityRejectedRoi: [  # type: ignore[dict-item]
@@ -143,22 +143,22 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 # 1. build up the points for a layer.
                 corners: list[list[list[int | FloatLike]]] = []
                 shapes: list[str] = []
-                for roi in rois:  # type: ignore[assignment]
+                for r in rois:  # type: ignore[assignment]
                     for (
                         q1,
                         q2,
                         q3,
                         q4,
                         is_center_slice,
-                    ) in roi.bounding_box.iter_z_slices_nonnegative():
+                    ) in r.bounding_box.iter_z_slices_nonnegative():
                         corners.append(
                             [
-                                [roi.timepoint, roi.channel, *_point_to_list(pt)]
+                                [r.timepoint, r.channel, *_point_to_list(pt)]
                                 for pt in [q1, q2, q3, q4]
                             ]
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
-                logging.debug("Point count for ROI type %s: %d", roi.typename, len(shapes))
+                logging.debug("Point count for ROI type %s: %d", r.typename, len(corners))
 
                 # 2. Build up collection of layer parameters.
                 params: dict[str, object] = {
@@ -174,14 +174,14 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                 # Add the trace ID whenever > 1 ROI is in the same trace.
                 if roi_type in [MergeContributorRoi, MergedRoi, SingletonRoi]:
                     format_string_parts: list[str] = []
-                    features: dict[str, object] = {}
+                    features: dict[str, Sized] = {}
                     if roi_type in [MergeContributorRoi, MergedRoi]:
                         features.update(
                             {
                                 "mergeId": [
                                     r.id if roi_type == MergedRoi else r.merge_index
                                     for r in rois
-                                    for _ in roi.bounding_box.iter_z_slices_nonnegative()
+                                    for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
                         )
@@ -192,7 +192,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                                 "traceId": [
                                     r.traceId if r.trace_partners else ""  # type: ignore[attr-defined]
                                     for r in rois
-                                    for _ in roi.bounding_box.iter_z_slices_nonnegative()
+                                    for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
                         )
@@ -203,6 +203,10 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:
                         "color": layer_color,
                     }
                     params.update({"features": features, "text": text_properties})
+                    if features:
+                        logging.debug(
+                            f"Feature counts: {[(k, len(vs)) for k, vs in features.items()]}"
+                        )
 
                 # 4. Add the layer to the growing collection.
                 layers.append((corners, params, "shapes"))
