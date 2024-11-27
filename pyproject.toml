@@ -53,12 +53,12 @@ coverage = [
 ]
 formatting = [
     "codespell >= 2.2.4",
-    "ruff >= 0.3",
+    "ruff >= 0.8",
 ]
 linting = [
     "mypy >= 1.0.1",
     "pandas-stubs",
-    "ruff >= 0.3",
+    "ruff >= 0.8",
 ]
 testsuite = [
     "hypothesis >= 6.92.1",
