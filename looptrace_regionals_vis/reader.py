@@ -347,7 +347,7 @@ def _parse_roi_ids_field(
     row: pd.Series,  # type: ignore[type-arg]
     *,
     key: str,
-    intra_field_delimiter: str = ";",
+    intra_field_delimiter: str = " ",
 ) -> set[RoiId]:
     raw_value: object = row[key]
     result: set[RoiId]
