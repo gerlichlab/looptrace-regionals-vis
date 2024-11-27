@@ -165,7 +165,6 @@ ignore = [
     # Ignore some groups of checks in our test code.
     "ANN",  # Type annotations
     "D10",  # Missing docstrings
-    "TCH00",  # Imports and type checking blocks
     "INP001", # File `...` is part of an implicit namespace package. Add an `__init__.py`.
 
     # Ignore some more specific checks in our test code.
