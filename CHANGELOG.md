@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.1] - 2024-12-03
+
+### Changed
+* Always display trace ID, for every final (merged or singleton) spot.
+See [Issue 18](https://github.com/gerlichlab/looptrace-regionals-vis/issues/18) and [Issue 19](https://github.com/gerlichlab/looptrace-regionals-vis/issues/19).
+* Use implementation of `NucleusNumber` from `gertils`.
+
 ## [v0.4.0] - 2024-11-27
 This release supports `looptrace` v0.11.1.
 
