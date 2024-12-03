@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from gertils.types import TraceIdFrom0
+from gertils.types import NucleusNumber, TraceIdFrom0
 
 from .bounding_box import BoundingBox3D
 from .colors import IBM_BLUE, IBM_ORANGE, IBM_PINK, IBM_PURPLE, IBM_YELLOW
-from .types import Channel, NucleusNumber, RoiId, Timepoint
+from .types import Channel, RoiId, Timepoint
 
 
 class RegionOfInterest(Protocol):
