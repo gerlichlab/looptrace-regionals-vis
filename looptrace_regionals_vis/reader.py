@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Literal, Optional, TypeAlias
 
 import pandas as pd
-from gertils.types import TraceIdFrom0
+from gertils.types import NucleusNumber, TraceIdFrom0
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .roi import MergeContributorRoi, MergedRoi, NonNuclearRoi, ProximityRejectedRoi, SingletonRoi
-from .types import Channel, LayerParams, NucleusNumber, PathOrPaths, RoiId, Timepoint
+from .types import Channel, LayerParams, PathOrPaths, RoiId, Timepoint
 
 # Aliases
 FullDataLayer = tuple[list[list[list[int | FloatLike]]], LayerParams, Literal["shapes"]]
