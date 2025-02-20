@@ -48,9 +48,21 @@ class MergeContributorRoi(RegionOfInterest):
 class ProximityRejectedRoi(RegionOfInterest):
     """A ROI which was rejected on account of proximity to another ROI"""
 
+    id: RoiId
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
+    neighbors: set[RoiId]
+
+    def __post_init__(self) -> None:
+        match self.neighbors:
+            case set():
+                if len(self.neighbors) == 0:
+                    raise ValueError(f"Set of neighbors for {type(self).__name__} is empty")
+            case _:
+                raise TypeError(
+                    f"Expected a set for neighbors for {type(self).__name__} but got {type(self.neighbors).__name__}"
+                )
 
     @property
     def color(self) -> str:
@@ -76,6 +88,7 @@ class NonNuclearRoi(RegionOfInterest):
 class SingletonRoi(RegionOfInterest):
     """A ROI which passed filters and is not the result of a merge"""
 
+    id: RoiId
     timepoint: Timepoint
     channel: Channel
     bounding_box: BoundingBox3D
