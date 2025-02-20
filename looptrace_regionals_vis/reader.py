@@ -15,6 +15,10 @@ from numpydoc_decorator import doc  # type: ignore[import-untyped]
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
 from .roi import MergeContributorRoi, MergedRoi, NonNuclearRoi, ProximityRejectedRoi, SingletonRoi
+from .settings import (
+    display_roi_id_for_singletons,
+    get_maximum_number_of_proximity_partners_to_display,
+)
 from .types import Channel, LayerParams, PathOrPaths, RoiId, Timepoint
 
 # Aliases
@@ -29,6 +33,7 @@ X_COLUMN = "xc"
 BOX_CENTER_COLUMN_NAMES = [Z_COLUMN, Y_COLUMN, X_COLUMN]
 CHANNEL_COLUMN = "spotChannel"
 COLOR_PARAMS_KEY = "edge_color"
+ROI_ID_COLUMN = "index"
 SHAPE_PARAMS_KEY = "shape_type"
 TEXT_SIZE = 8
 TIME_COLUMN = "timepoint"
@@ -94,7 +99,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
         return None
 
     # Create the parser.
-    def build_layers(folder) -> list[FullDataLayer]:  # type: ignore[no-untyped-def]  # noqa: ANN001
+    def build_layers(folder) -> list[FullDataLayer]:  # type: ignore[no-untyped-def]  # noqa: ANN001 PLR0915
         # Map (uniquely!) each data kind/status to a file to parse.
         file_by_kind: dict[InputFileContentType, Path] = {}
         for fp in filter(_is_plausible_input_file, Path(folder).iterdir()):
@@ -129,8 +134,14 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
             elif file_type == InputFileContentType.ProximityRejects:
                 rois_by_type = {
                     ProximityRejectedRoi: [  # type: ignore[dict-item]
-                        ProximityRejectedRoi(timepoint=t, channel=c, bounding_box=b)  # type: ignore[misc]
-                        for t, c, b in parse_boxes(file_path)
+                        ProximityRejectedRoi(
+                            id=i,
+                            timepoint=t,
+                            channel=c,
+                            bounding_box=b,
+                            neighbors=ns,
+                        )  # type: ignore[misc]
+                        for i, ns, t, c, b in _parse_proximity_rejects(file_path)
                     ]
                 }
             else:
@@ -169,12 +180,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                     COLOR_PARAMS_KEY: layer_color,
                 }
 
+                features: dict[str, Sized] = {}
+                format_string_parts: list[str] = []
+
                 # 3. Add text if necessary based on ROI type.
                 # Add the merge index for merge input or output record.
                 # Add the trace ID whenever > 1 ROI is in the same trace.
                 if roi_type in [MergeContributorRoi, MergedRoi, SingletonRoi]:
-                    format_string_parts: list[str] = []
-                    features: dict[str, Sized] = {}
                     if roi_type in [MergeContributorRoi, MergedRoi]:
                         features.update(
                             {
@@ -185,8 +197,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                                 ]
                             }
                         )
+                        # NB: this is more like "ID after merge step", so it applies
+                        # even to the singleton ROIs.
                         format_string_parts.append("i={mergeId}")
                     if roi_type in [MergedRoi, SingletonRoi]:
+                        logging.debug(
+                            "Adding trace IDs to display for ROIs of type: %s", roi_type.__name__
+                        )
                         features.update(
                             {
                                 "traceId": [
@@ -197,17 +214,63 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             }
                         )
                         format_string_parts.append("t={traceId}")
+                    if roi_type == SingletonRoi:
+                        if display_roi_id_for_singletons():
+                            logging.debug(
+                                "Adding ROI ID to display for ROIs of type: %s", roi_type.__name__
+                            )
+                            features.update(
+                                {
+                                    "roiId": [
+                                        r.id
+                                        for r in rois
+                                        for _ in r.bounding_box.iter_z_slices_nonnegative()
+                                    ]
+                                }
+                            )
+                            # NB: this ROI set is disjoint with other which generates a i=... format string
+                            format_string_parts.append("i={roiId}")
+                        else:
+                            logging.debug(
+                                "Skipping addition of ROI IDs for ROIs of type: %s",
+                                roi_type.__name__,
+                            )
+                elif roi_type == ProximityRejectedRoi:
+                    match get_maximum_number_of_proximity_partners_to_display():
+                        case 0:
+                            logging.debug(
+                                "Skipping annotation for ROIs of type: %s", roi_type.__name__
+                            )
+                        case int(max_neighbors):
+                            logging.debug(
+                                "Adding annotation for ROIs of type: %s", roi_type.__name__
+                            )
+                            features = {
+                                "proximityAnnotation": [
+                                    f"{r.id}: {_get_proximity_rejects_neighbors_text(r, limit=max_neighbors)}"  # type: ignore[arg-type]
+                                    for r in rois
+                                    for _ in r.bounding_box.iter_z_slices_nonnegative()
+                                ]
+                            }
+                            format_string_parts.append("{proximityAnnotation}")
+                        case x:
+                            raise TypeError(
+                                f"Expected an integer for maximum number of proximity partners to display, but got {type(x).__name__}"
+                            )
+
+                if features:
+                    if not format_string_parts:
+                        raise RuntimeError("Features is nonempty but format string parts is empty")
                     text_properties: dict[str, object] = {
                         "string": ", ".join(format_string_parts),
                         "size": TEXT_SIZE,
                         "color": layer_color,
                     }
                     params.update({"features": features, "text": text_properties})
-                    if features:
-                        logging.debug(
-                            "Feature counts: %s",
-                            ", ".join(f"{k} -> {len(vs)}" for k, vs in features.items()),
-                        )
+                    logging.debug(
+                        "Feature counts: %s",
+                        ", ".join(f"{k} -> {len(vs)}" for k, vs in features.items()),
+                    )
 
                 # 4. Add the layer to the growing collection.
                 layers.append((corners, params, "shapes"))
@@ -215,6 +278,13 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
         return layers
 
     return build_layers
+
+
+def _get_proximity_rejects_neighbors_text(roi: ProximityRejectedRoi, *, limit: int) -> str:
+    neighbors: list[RoiId] = sorted(roi.neighbors)[:limit]
+    sep: str = ","
+    extra: int = len(roi.neighbors) - len(neighbors)
+    return sep.join(map(str, neighbors)) + (f"{sep}+{extra}" if extra > 0 else "")
 
 
 @doc(
@@ -231,7 +301,7 @@ def _parse_non_contributor_non_proximal_rois(
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     for _, row in pd.read_csv(path).iterrows():
-        time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
+        roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
             _parse_nucleus_labeled_record(row)
         )
         roi: NonNuclearRoi | SingletonRoi | MergedRoi
@@ -240,6 +310,7 @@ def _parse_non_contributor_non_proximal_rois(
                 roi = NonNuclearRoi(timepoint=time, channel=channel, bounding_box=box)
             case (nuc_num, None):
                 roi = SingletonRoi(
+                    id=roiId,
                     timepoint=time,
                     channel=channel,
                     bounding_box=box,
@@ -269,26 +340,45 @@ def _parse_non_contributor_non_proximal_rois(
 @doc(
     summary="Read the data from the given file and parse it into bounding boxes.",
     parameters=dict(path="Path to data file from which to parse bounding boxes"),
-    returns="List of tuples of time, channel, and box.",
+    returns="List of tuples of ID, neighbors, time, channel, and bounding box.",
 )
-def parse_boxes(  # noqa: D103
+def _parse_proximity_rejects(
     path: Path,
-) -> list[tuple[Timepoint, Channel, BoundingBox3D]]:
+) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
     box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    spot_data = pd.read_csv(
-        path, usecols=BOX_CENTER_COLUMN_NAMES + box_cols + [TIME_COLUMN, CHANNEL_COLUMN]
-    )
-    time_channel_location_trios: list[tuple[Timepoint, Channel, BoundingBox3D]] = [
-        _parse_time_channel_box_trio(record) for _, record in spot_data.iterrows()
+    neigbhbors_column: str = "tooCloseRois"
+    cols_to_read: list[str] = [
+        ROI_ID_COLUMN,
+        neigbhbors_column,
+        *BOX_CENTER_COLUMN_NAMES,
+        *box_cols,
+        TIME_COLUMN,
+        CHANNEL_COLUMN,
     ]
-    return time_channel_location_trios
+    spot_data = pd.read_csv(path, usecols=cols_to_read, index_col=None)
+    return [
+        (
+            record[ROI_ID_COLUMN],
+            _parse_neighbors(record[neigbhbors_column]),
+            *_parse_time_channel_box_trio(record),
+        )
+        for _, record in spot_data.iterrows()
+    ]
+
+
+def _parse_neighbors(raw_value: str) -> set[RoiId]:
+    values = list(map(int, raw_value.split(" ")))
+    unique = set(values)
+    if len(unique) == len(values):
+        return unique
+    raise ValueError(f"Repeated values are present among proximal neighbors: {values}")
 
 
 def _parse_merge_contributor_record(
     record: pd.Series,  # type: ignore[type-arg]
 ) -> MergeContributorRoi:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
-    index: RoiId = record["index"]
+    index: RoiId = record[ROI_ID_COLUMN]
     merge_column_name = "mergeOutput"
     raw_merge_index = record[merge_column_name]
     MergeIdType: TypeAlias = RoiId
@@ -310,6 +400,7 @@ def _parse_merge_contributor_record(
 def _parse_nucleus_labeled_record(
     record: pd.Series,  # type: ignore[type-arg]
 ) -> tuple[
+    RoiId,
     Timepoint,
     Channel,
     BoundingBox3D,
@@ -320,6 +411,7 @@ def _parse_nucleus_labeled_record(
 ]:
     record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
 
+    roiId: RoiId = record[ROI_ID_COLUMN]
     traceId: TraceIdFrom0 = TraceIdFrom0(record["traceId"])
     trace_partners: set[RoiId] = _parse_roi_ids_field(record, key="tracePartners")
 
@@ -334,13 +426,13 @@ def _parse_nucleus_labeled_record(
     if raw_merge_indices is None or raw_merge_indices == "" or pd.isna(raw_merge_indices):
         id_and_contribs = None
     else:
-        roi_id: RoiId = record["index"]
+        roi_id: RoiId = record[ROI_ID_COLUMN]
         contribs = _parse_roi_ids_field(record, key=merge_column_name)
         id_and_contribs = (roi_id, contribs)
 
     time, channel, box = _parse_time_channel_box_trio(record)
 
-    return time, channel, box, traceId, trace_partners, maybe_nuc_num, id_and_contribs
+    return roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, id_and_contribs
 
 
 def _parse_roi_ids_field(
