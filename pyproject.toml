@@ -53,12 +53,12 @@ coverage = [
 ]
 formatting = [
     "codespell >= 2.2.4",
-    "ruff >= 0.8",
+    "ruff >= 0.9.7",
 ]
 linting = [
     "mypy >= 1.0.1",
     "pandas-stubs",
-    "ruff >= 0.8",
+    "ruff >= 0.9.7",
 ]
 testsuite = [
     "hypothesis >= 6.92.1",
@@ -154,6 +154,7 @@ ignore = [
     "E501",  # line-too-long
 
     # Other
+    "A005",  # Module name shadows a Python standard-library module
     "PLR0912",  # too many branches (of a conditional)
     "TD002",  # missing author in TODO
     "C901", # function too complex

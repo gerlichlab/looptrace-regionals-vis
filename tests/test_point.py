@@ -21,9 +21,9 @@ def test_point_construction_is_keyword_only(coordinates):
         Point3D(z, y, x)
     expected_submessage = "takes 1 positional argument but 4 were given"
     observed_message = str(error_context.value)
-    assert (
-        expected_submessage in observed_message
-    ), f"Did not find expected submessage ('{expected_submessage}') in error message ('{observed_message}')"
+    assert expected_submessage in observed_message, (
+        f"Did not find expected submessage ('{expected_submessage}') in error message ('{observed_message}')"
+    )
 
 
 @hyp.given(

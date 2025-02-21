@@ -34,17 +34,17 @@ NUM_ROI_TYPES = len(
 
 
 def test_cannot_read_list_of_files():
-    assert (
-        get_reader(EXAMPLE_FILES) is None
-    ), "Expected inability to parse list of filepaths, but got non-null reader!"
+    assert get_reader(EXAMPLE_FILES) is None, (
+        "Expected inability to parse list of filepaths, but got non-null reader!"
+    )
 
 
 @pytest.mark.parametrize("wrap", [str, Path])
 def test_would_read_collectivity_of_package_examples(wrap):
     folder = wrap(get_package_examples_folder())
-    assert callable(
-        get_reader(folder)
-    ), f"Expected a callable reader for path {folder} but didn't get one!"
+    assert callable(get_reader(folder)), (
+        f"Expected a callable reader for path {folder} but didn't get one!"
+    )
 
 
 def test_path_which_is_not_extant_directory_cannot_be_parsed(tmp_path):
