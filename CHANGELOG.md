@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.5.0] - 2025-02-20
+## [v0.5.0] - 2025-02-21
 
 ### Added
-* 
+* `LOOPTRACE__DISPLAY_SINGLETON_ROI_IDS`, as an environment variable to indicate that any singleton ROI should have its ID displayed. 
+The default is false, but truth can be set with `1` or `TRUE`.
+* `LOOPTRACE__DISPLAY_PROXIMITY_REJECTS_ANNOTATION`, as an environment variable to indicate that any ROI rejected for proximity should be labeled with its ID and those of its proximal neighbors. 
+The default is false, but truth can be set with `1` or `TRUE`.
+* `LOOPTRACE__MAX_PROXIMITY_PARTNERS_TO_DISPLAY`, as an environment variable to set the maximum number of neighbors which should be displayed for a ROI discarded on account of proximity to others. 
+The default is 5.
 
 ## [v0.4.1] - 2024-12-03
 

@@ -59,3 +59,11 @@ Some spots are labeled:
     * `nucleusNumber` (to tell nuclear from non-nuclear ROIs)
     * `traceId` (to label ROIs which participate in a multi-ROI trace)
     * `tracePartners` (to determine whether a ROI participates in a multi-rOI trace)
+
+### Customizability
+* `LOOPTRACE__DISPLAY_SINGLETON_ROI_IDS` can be used to indicate that any singleton ROI should have its ID displayed. 
+This behavior is triggered by setting this environment variable to `1` or `TRUE`.
+* `LOOPTRACE__DISPLAY_PROXIMITY_REJECTS_ANNOTATION` can be used to indicate that any ROI rejected for proximity should be labeled with its ID and those of its proximal neighbors. 
+This behavior is triggered by setting this environment variable to `1` or `TRUE`.
+* `LOOPTRACE__MAX_PROXIMITY_PARTNERS_TO_DISPLAY` can be used to set the maximum number of neighbors which should be displayed for a ROI discarded on account of proximity to others. 
+The default is 5.
