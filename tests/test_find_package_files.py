@@ -25,9 +25,9 @@ def test_package_example_files_count():
     """Test various properties of the finding of package example files."""
     examples = find_package_files("examples")
     exp_file_count = 3
-    assert len(examples) == exp_file_count, (
-        f"Expected {exp_file_count} example files but got {len(examples)}"
-    )
+    assert (
+        len(examples) == exp_file_count
+    ), f"Expected {exp_file_count} example files but got {len(examples)}"
     assert all(fp.is_file() for fp in examples), "Not all example files are seen as extant files!"
 
 

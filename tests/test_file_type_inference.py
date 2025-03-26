@@ -38,9 +38,9 @@ class FileTypeInferenceParameterization:
 
 @pytest.mark.parametrize("filepath", find_package_files("examples"))
 def test_each_package_example_is_resolvable(filepath):
-    assert InputFileContentType.from_filepath(filepath) is not None, (
-        f"Could not infer processing status from filepath: {filepath}"
-    )
+    assert (
+        InputFileContentType.from_filepath(filepath) is not None
+    ), f"Could not infer processing status from filepath: {filepath}"
 
 
 @hyp.given(arg=st.one_of(st.text(), st.integers(), st.just(None)))
