@@ -13,12 +13,11 @@ from looptrace_regionals_vis.roi import (
     MergedRoi,
     NonNuclearRoi,
     ProximityRejectedRoi,
-    RegionOfInterest,
     SingletonRoi,
 )
 
 EXAMPLE_FILES: list[Path] = list_package_example_files()
-ROI_TYPES_BY_FILE_TYPE: dict[InputFileContentType, set[RegionOfInterest]] = {
+ROI_TYPES_BY_FILE_TYPE: dict[InputFileContentType, set[type]] = {
     InputFileContentType.MergeContributors: {MergeContributorRoi},
     InputFileContentType.ProximityRejects: {ProximityRejectedRoi},
     InputFileContentType.NucleiLabeled: {

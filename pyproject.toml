@@ -1,71 +1,77 @@
-[project]
+[tool.poetry]
 name = "looptrace-regionals-vis"
-dynamic = ["version"]
-requires-python = ">= 3.10, < 3.13"
-authors = [
-    {name = "Vince Reuter"}
-]
-description = "This project facilitates viewing, in `napari`, locus-specific spots from `looptrace`."
+version = "0.5.4"
+description = "This project facilitates viewing, in `napari`, regional spots from `looptrace`."
+authors = ["Vince Reuter"]
+license = "MIT"
 readme = "README.md"
-license = {file = "LICENSE"}
+repository = "https://github.com/gerlichlab/looptrace-regionals-vis.git"
 keywords = ["visualisation", "bioinformatics", "chromatin", "napari", "FISH"]
 classifiers = [
-    "Development Status :: 1 - Planning",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: POSIX :: Linux",
-    "Operating System :: MacOS",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "Typing :: Typed",
-]
-dependencies = [
-    "gertils @ git+https://github.com/gerlichlab/gertils.git@v0.6.0",
-    "importlib_resources; python_version < '3.11'",
-    "napari >= 0.4.19; sys_platform == 'darwin'",
-    "napari[all] >= 0.4.19; sys_platform != 'darwin'",
-    "numpy",
-    "numpydoc_decorator >= 2.2.1",
-    "pandas",
-    "pyqt6 >= 6.5.0; sys_platform == 'darwin'",
-    "zarr >= 2.4.12",
+  "Development Status :: 1 - Planning",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Typing :: Typed",
 ]
 
 [build-system]
-requires = ["setuptools", "setuptools-scm", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project.urls]
-Homepage = "https://github.com/gerlichlab/looptrace-regionals-vis"
-Repository = "https://github.com/gerlichlab/looptrace-regionals-vis.git"
-Issues = "https://github.com/gerlichlab/looptrace-regionals-vis/issues"
-
-[tool.setuptools.dynamic]
-version = { attr = "looptrace_regionals_vis.__version__" }
-
-[project.entry-points."napari.manifest"]
+[tool.poetry.plugins."napari.manifest"]
 looptrace-regionals-vis = "looptrace_regionals_vis:napari.yaml"
 
-[project.optional-dependencies]
-coverage = [
-    "coverage >= 7.5.0",
-]
-formatting = [
-    "codespell >= 2.2.4",
-    "ruff == 0.7.4", # https://github.com/astral-sh/ruff/issues/14681
-]
-linting = [
-    "mypy >= 1.0.1",
-    "pandas-stubs",
-    "ruff == 0.7.4", # https://github.com/astral-sh/ruff/issues/14681
-]
-testsuite = [
-    "hypothesis >= 6.92.1",
-    "npe2",
-    "pytest >= 7.1.0",
-    "typer",
-]
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.6.0" }
+importlib_resources = { version = "*", markers = "python_version < '3.11'" }
+numpy = "*"
+numpydoc_decorator = ">=2.2.1"
+pandas = "*"
+zarr = ">=2.4.12"
+
+# OS-specific dependency declarations
+napari = { version = "==0.4.19.post1", markers = "sys_platform == 'darwin'" }
+pyqt6 = { version = ">=6.5.0", markers = "sys_platform == 'darwin'" }
+
+[tool.poetry.group.coverage]
+optional = true
+
+[tool.poetry.group.coverage.dependencies]
+coverage = ">=7.5.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+
+[tool.poetry.group.formatting]
+optional = true
+
+[tool.poetry.group.formatting.dependencies]
+codespell = ">=2.2.4"
+ruff = "==0.7.4"  # https://github.com/astral-sh/ruff/issues/14681
+
+[tool.poetry.group.linting]
+optional = true
+
+[tool.poetry.group.linting.dependencies]
+mypy = ">=1.0.1"
+pandas-stubs = "*"
+ruff = "==0.7.4"  # https://github.com/astral-sh/ruff/issues/14681
+
+[tool.poetry.group.testsuite.dependencies]
+hypothesis = ">=6.92.1"
+npe2 = "*"
+pytest = ">=7.1.0"
+typer = "*"
 
 [tool.codespell]
 skip = ".git,.mypy_cache,.nox,.vscode,__pycache__,poetry.lock"
@@ -75,11 +81,18 @@ check-filenames = true
 uri-ignore-words-list = "*"
 
 [tool.mypy]
-files = ['looptrace_regionals_vis/*.py']
+files = ['looptrace_regionals_vis/*.py', 'tests/*.py']
+plugins = ["pydantic.mypy"]
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
+enable_error_code = ["ignore-without-code"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = "annotation-unchecked"
+disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = "looptrace_regionals_vis.*"

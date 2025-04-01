@@ -7,7 +7,7 @@ from typing import Optional
 import hypothesis as hyp
 import pytest
 from hypothesis import strategies as st
-from numpydoc_decorator import doc
+from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
 from looptrace_regionals_vis import find_package_files
 from looptrace_regionals_vis.reader import InputFileContentType
