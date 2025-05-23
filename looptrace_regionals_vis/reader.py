@@ -1,6 +1,5 @@
 """Tools for creating the reader of regional points data"""
 
-import dataclasses
 import logging
 from collections import Counter
 from collections.abc import Callable, Sized
@@ -37,6 +36,7 @@ ROI_ID_COLUMN = "index"
 SHAPE_PARAMS_KEY = "shape_type"
 TEXT_SIZE = 8
 TIME_COLUMN = "timepoint"
+TOO_CLOSE_ROIS_COLUMN: str = "tooCloseRois"
 
 
 class InputFileContentType(Enum):
@@ -345,24 +345,20 @@ def _parse_non_contributor_non_proximal_rois(
 def _parse_proximity_rejects(
     path: Path,
 ) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
-    box_cols = [f.name for f in dataclasses.fields(BoundingBox3D) if f.name != "center"]
-    neigbhbors_column: str = "tooCloseRois"
-    cols_to_read: list[str] = [
-        ROI_ID_COLUMN,
-        neigbhbors_column,
-        *BOX_CENTER_COLUMN_NAMES,
-        *box_cols,
-        TIME_COLUMN,
-        CHANNEL_COLUMN,
-    ]
-    spot_data = pd.read_csv(path, usecols=cols_to_read, index_col=None)
+    spot_data = pd.read_csv(path, index_col=None)
+    return _parse_proximity_rejects_table(spot_data)
+
+
+def _parse_proximity_rejects_table(
+    rois: pd.DataFrame,
+) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
     return [
         (
             record[ROI_ID_COLUMN],
-            _parse_neighbors(record[neigbhbors_column]),
+            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),
             *_parse_time_channel_box_trio(record),
         )
-        for _, record in spot_data.iterrows()
+        for _, record in rois.iterrows()
     ]
 
 
