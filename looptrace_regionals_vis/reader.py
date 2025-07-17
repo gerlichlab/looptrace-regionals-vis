@@ -10,6 +10,7 @@ from typing import Literal, Optional, TypeAlias
 import pandas as pd
 from gertils.types import NucleusNumber, TraceIdFrom0
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
+from pandas.errors import EmptyDataError
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
@@ -119,12 +120,17 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
         for file_type, file_path in file_by_kind.items():
             logging.debug("Processing data for file type %s: %s", file_type.name, file_path)
             if file_type == InputFileContentType.MergeContributors:
-                rois_by_type = {
-                    MergeContributorRoi: [
-                        _parse_merge_contributor_record(row)
-                        for _, row in pd.read_csv(file_path).iterrows()
+                parse_result: list[MergeContributorRoi]
+                try:
+                    data = pd.read_csv(file_path)
+                except EmptyDataError:
+                    logging.warning("Empty data file: %s", file_path)
+                    parse_result = []
+                else:
+                    parse_result = [
+                        _parse_merge_contributor_record(row) for _, row in data.iterrows()
                     ]
-                }
+                rois_by_type = {MergeContributorRoi: parse_result}
             elif file_type == InputFileContentType.NucleiLabeled:
                 rois_by_type = {}
                 for r in _parse_non_contributor_non_proximal_rois(file_path):
@@ -300,7 +306,12 @@ def _parse_non_contributor_non_proximal_rois(
     path: Path,
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
-    for _, row in pd.read_csv(path).iterrows():
+    try:
+        data = pd.read_csv(path)
+    except EmptyDataError:
+        logging.warning("Empty data file: %s", path)
+        return []
+    for _, row in data.iterrows():
         roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
             _parse_nucleus_labeled_record(row)
         )
@@ -345,7 +356,11 @@ def _parse_non_contributor_non_proximal_rois(
 def _parse_proximity_rejects(
     path: Path,
 ) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
-    spot_data = pd.read_csv(path, index_col=None)
+    try:
+        spot_data = pd.read_csv(path, index_col=None)
+    except EmptyDataError:
+        logging.warning("Empty data file: %s", path)
+        return []
     return _parse_proximity_rejects_table(spot_data)
 
 
