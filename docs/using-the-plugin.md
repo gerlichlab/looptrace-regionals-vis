@@ -39,9 +39,9 @@ Some spots are labeled:
 ### Necessary data files
 1. 1 ZARR per field of view you wish to view, named like `P0001.zarr`
 1. 0 or 1 files of each of the following types, per field of view, organized into a folder that has the same field of view name as the ZARR, e.g. `P0001`. There must be at least 1 of these 3 files present:
-    - A `*_rois.csv` file: unfiltered regional spots
-    - A `*_rois.proximity_accepted.csv` file: regional spots after discarding those which are too close together
-    - A `*_rois.with_trace_ids.csv` file: regional spots after proximity-based filtration and labeling attribution of ROIs/spots to nuclei
+    - A `*_rois.merge_contributors.csv` file: ROIs initially detected which were then merged together to create a new ROI
+    - A `*_rois.proximity_rejected.csv` file: ROIs which were discarded due to proximity to another ROI
+    - A `*_rois.with_trace_ids.csv` file: ROIs after proximity-based filtration and labeling attribution to nuclei
 
 ### File format notes
 * For each spot, the following must be parsed:
