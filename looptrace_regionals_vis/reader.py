@@ -155,7 +155,11 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
             # For some file types, this loop is trivial (single-element rois_by_type).
             for roi_type, rois in rois_by_type.items():
-                layer_color: str = rois[0].color
+                try:
+                    layer_color: str = rois[0].color
+                except IndexError:
+                    logging.warning(f"No ROIs of type {roi_type}")  # noqa: G004
+                    continue
 
                 # 1. build up the points for a layer.
                 corners: list[list[list[int | FloatLike]]] = []
