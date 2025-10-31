@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "looptrace-regionals-vis"
-version = "0.5.7"
+version = "0.5.8"
 description = "This project facilitates viewing, in `napari`, regional spots from `looptrace`."
 authors = ["Vince Reuter"]
 license = "MIT"
@@ -29,7 +29,7 @@ looptrace-regionals-vis = "looptrace_regionals_vis:napari.yaml"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
-gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.6.0" }
+gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.6.1" }
 importlib_resources = { version = "*", markers = "python_version < '3.11'" }
 numpy = "*"
 numpydoc_decorator = ">=2.2.1"
