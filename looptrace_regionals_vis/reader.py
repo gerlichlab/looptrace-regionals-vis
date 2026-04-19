@@ -43,7 +43,7 @@ TOO_CLOSE_ROIS_COLUMN: str = "tooCloseRois"
 class InputFileContentType(Enum):
     """The processing steps undergone by data in a file or in memory"""
 
-    MergeContributors = ".merge_contributors.csv"
+    MergeContributors = ".merge_or_discard_contributors.csv"
     ProximityRejects = ".proximity_rejected.csv"
     NucleiLabeled = ".with_trace_ids.csv"
 
@@ -435,7 +435,7 @@ def _parse_nucleus_labeled_record(
         None if raw_nuc_num == 0 else NucleusNumber(raw_nuc_num)
     )
 
-    merge_column_name = "mergePartners"
+    merge_column_name = "neighbors"
     id_and_contribs: Optional[IdAndContributors]
     raw_merge_indices = record[merge_column_name]
     if raw_merge_indices is None or raw_merge_indices == "" or pd.isna(raw_merge_indices):
