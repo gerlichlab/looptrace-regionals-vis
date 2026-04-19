@@ -10,3 +10,6 @@ __pycache__/
 .hypothesis/
 .mypy_cache/
 
+# IDE-related
+.vscode
+
