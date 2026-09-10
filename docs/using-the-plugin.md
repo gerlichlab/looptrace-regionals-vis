@@ -6,10 +6,13 @@ Perhaps the easiest way is to use this project's Nix shell.
 Alternatively, you could use a virtual environment that you manage yourself. 
 For more, refer to the section about [installation and setup](./README.md#installation-and-environment).
 1. Start Napari by typing `napari` from this project's Nix shell or with your environment activated.
-1. Click and drag into the Napari window a ZARR for a particular field of view's FISH images, from `looptrace`.
+1. Click and drag into the Napari window the ZARR of FISH images for the field of view (FOV) you wish to view, e.g. `P0001.zarr`. 
+For output of the `looptrace` Nextflow pipeline, this is in the experiment folder and shared by all analysis runs: `[EXPERIMENT]/images_zarr/seq_images_zarr/P0001.zarr` (see [where to find the files](#where-to-find-the-files)).
 1. If prompted, select to open the ZARR with Napari builtins.
 1. Select "continuous" for the "auto-contrast" option in the upper-left (layer controls) pane of the Napari window.
-1. Click and drag into the Napari window a folder of regional spots files for the same field of view.
+1. Click and drag into the Napari window the folder of regional spots files for the same FOV, e.g. `P0001`. 
+For output of the `looptrace` Nextflow pipeline, this is `[EXPERIMENT]/Analysis_<NNN>_<timestamp>/B13_REGIONAL_SPOT_POOLING/regional_spots_visualisation/P0001`, taken from the analysis run you wish to inspect. 
+Drag the FOV folder itself: dragging `B13_REGIONAL_SPOT_POOLING`, `regional_spots_visualisation`, or the individual CSV files inside the FOV folder will not produce any layers.
 1. If prompted, select `looptrace-regionals-vis` (this plugin) to open (the files in) this folder.
 1. Use the sliders to adjust $z$ position (top), timepoint (bottom), or channel (middle).
 1. Once you're finished viewing a particular FOV, select all layers and click the garbage can icon to remove them, then repeat the process for the next FOV of interest.
@@ -29,6 +32,10 @@ The spots are color-coded:
 * _Purple_: merge contributor
 * _Yellow_: resulting from a merge, and retained
 
+Not every color need appear. 
+For example, if the analysis run used `spot_in_nuc: true`, spots outside nuclei are removed before the table of retained spots is written, so there are no orange spots. 
+Likewise, if no ROIs were merged, the merge contributors file is empty and there are no purple or yellow spots.
+
 Spot shape differs by $z$-slice; the $z$-slice closest to the truncated $z$-coordinate of the spot's centroid will be square while everywhere else will be circular. We do not add $z$ slices for spots for which the bounding box extends below $0$, but there can be $z$ slices "beyond" the true images, if a spot was detected close to the max $z$ depth. This may also change in a future release.
 
 Some spots are labeled:
@@ -43,6 +50,37 @@ Some spots are labeled:
     - A `*_rois.proximity_rejected.csv` file: ROIs which were discarded due to proximity to another ROI
     - A `*_rois.with_trace_ids.csv` file: ROIs after proximity-based filtration and labeling attribution to nuclei
 
+The part of a filename before the first `.` must end with `_rois`, and the filename must end with one of the 3 suffixes above; any further dot-separated parts in between are allowed. 
+For example, for FOV `P0001` the `looptrace` Nextflow pipeline writes these files:
+
+* `P0001_rois.proximity_assessed.merge_or_discard_contributors.csv`
+* `P0001_rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_rejected.csv`
+* `P0001_rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_accepted.with_trace_ids.csv`
+
+An empty data file (e.g., the merge contributors file when no ROIs were merged) is fine; it simply produces no layer.
+
+#### Where to find the files
+__`looptrace` Nextflow pipeline__: the experiment folder holds the ZARRs, shared by all analysis runs, and one `Analysis_<NNN>_<timestamp>` folder per analysis run. 
+Since runs may use different parameters, take the regional spots folder from the particular run you wish to inspect:
+
+```text
+[EXPERIMENT]/
+├── images_zarr/
+│   └── seq_images_zarr/
+│       ├── P0001.zarr                        <- 1. drag this ZARR
+│       └── ...
+└── Analysis_<NNN>_<timestamp>/
+    └── B13_REGIONAL_SPOT_POOLING/
+        └── regional_spots_visualisation/
+            ├── P0001/                        <- 2. then drag this folder
+            │   ├── P0001_rois.proximity_assessed.merge_or_discard_contributors.csv
+            │   ├── P0001_rois.proximity_assessed.[...].proximity_rejected.csv
+            │   └── P0001_rois.proximity_assessed.[...].with_trace_ids.csv
+            └── ...
+```
+
+__Earlier `looptrace` output__: a per-FOV folder with files named like `P0001_rois.merge_or_discard_contributors.csv`, `P0001_rois.proximity_rejected.csv`, and `P0001_rois.with_trace_ids.csv` still works in the same way.
+
 ### File format notes
 * For each spot, the following must be parsed:
     * Center point
@@ -52,7 +90,7 @@ Some spots are labeled:
 * The center point's coordinates are read from `zc`, `yc` and `xc` columns.
 * The bounding box is defined by columns suffixed `Min` and `Max` for each axis, e.g. `zMin`, `zMax`, etc.
 * The timepoint is read from column `timepoint`.
-* The channel is read from the `channel` column.
+* The channel is read from the `spotChannel` column.
 * For the merge contributors file, the `mergeOutput` column is parsed to get the ID of the merge result.
 * For the `*_rois.with_trace_ids.csv` file, the following additional columns are parsed:
     * `neighbors` (to tell singleton ROIs from merger output ROIs)
