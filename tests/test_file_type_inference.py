@@ -80,6 +80,16 @@ def test_from_filepath_requires_path(arg):
             ("_rois", ".with_trace_ids.csv", InputFileContentType.NucleiLabeled),
             ("_rois", ".csv", None),
             ("_rois", ".nuclei_labeled.proximity_accepted.csv", None),
+            # looptrace v0.24 on: "rois" a name part of its own, P0001.rois.<steps>.csv
+            (".rois", ".merge_or_discard_contributors.csv", InputFileContentType.MergeContributors),
+            (".rois", ".proximity_rejected.csv", InputFileContentType.ProximityRejects),
+            (".rois", ".with_trace_ids.csv", InputFileContentType.NucleiLabeled),
+            (".rois", ".proximity_accepted.csv", None),
+            (".rois", ".CSV", None),
+            # Not "rois" itself, nor "rois" past the second part.
+            (".filler_rois", ".with_trace_ids.csv", None),
+            (".roisx", ".with_trace_ids.csv", None),
+            (".detected.rois", ".with_trace_ids.csv", None),
         ]
     ],
 )

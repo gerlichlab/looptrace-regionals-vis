@@ -80,6 +80,20 @@ def test_non_csv_files_are_skipped(tmp_path, wrap, paths_to_mutate):
 
 
 @pytest.mark.parametrize("wrap", [str, Path])
+def test_a_folder_named_as_looptrace_v0_24_names_it_is_read(tmp_path, wrap):
+    # looptrace v0.24 names a field of view's tables P0001.rois.<steps>.csv, where
+    # earlier releases wrote P0001_rois.<steps>.csv; the columns are the same.
+    for fp in EXAMPLE_FILES:
+        shutil.copy(fp, tmp_path / fp.name.replace("_rois.", ".rois.", 1))
+    assert all(".rois." in p.name for p in tmp_path.iterdir())
+
+    read_data = get_reader(wrap(tmp_path))
+    layers = read_data(tmp_path)
+
+    assert len(layers) == NUM_ROI_TYPES
+
+
+@pytest.mark.parametrize("wrap", [str, Path])
 def test_csv_with_unparsable_data_processing_status_is_skipped(tmp_path, wrap):
     for fp in EXAMPLE_FILES:
         shutil.copy(fp, tmp_path)

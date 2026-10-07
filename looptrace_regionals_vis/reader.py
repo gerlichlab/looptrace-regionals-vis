@@ -51,8 +51,8 @@ class InputFileContentType(Enum):
     def from_filename(cls, fn: str) -> Optional["InputFileContentType"]:
         """Attempt to infer processing status from given filename."""
         chunks = fn.split(".")
-        if not chunks[0].endswith("_rois"):
-            logging.debug("There's no ROI-indicative suffix in file basename (%s)", chunks[0])
+        if not _names_rois(fn):
+            logging.debug("The file name does not say it holds ROIs: %s", fn)
             return None
         if chunks[-1] != "csv":
             logging.debug("No CSV extension on filename '%s'", fn)
@@ -297,13 +297,25 @@ def _get_proximity_rejects_neighbors_text(roi: ProximityRejectedRoi, *, limit: i
     return sep.join(map(str, neighbors)) + (f"{sep}+{extra}" if extra > 0 else "")
 
 
+def _names_rois(filename: str) -> bool:
+    """Whether a file name says the file holds ROIs.
+
+    looptrace before v0.24 names a field of view's tables ``P0001_rois.<steps>.csv``,
+    the FOV and ``_rois`` in the first part; from v0.24 on ``P0001.rois.<steps>.csv``,
+    with ``rois`` a part of its own.
+    """
+    parts = filename.split(".")
+    # "rois" the second part, and not the last: P0001.rois alone is no table.
+    return parts[0].endswith("_rois") or parts[1:-1][:1] == ["rois"]
+
+
 @doc(
     summary="Determine if the given path may be an input file to parse.",
     parameters=dict(path="Path to test as a plausible input file"),
     returns="The result of the compound test",
 )
 def _is_plausible_input_file(path: Path) -> bool:
-    return path.is_file() and path.suffix == ".csv" and path.name.split(".")[0].endswith("_rois")
+    return path.is_file() and path.suffix == ".csv" and _names_rois(path.name)
 
 
 def _parse_non_contributor_non_proximal_rois(
