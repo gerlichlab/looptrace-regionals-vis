@@ -46,16 +46,18 @@ Some spots are labeled:
 ### Necessary data files
 1. 1 ZARR per field of view you wish to view, named like `P0001.zarr`
 1. 0 or 1 files of each of the following types, per field of view, organized into a folder that has the same field of view name as the ZARR, e.g. `P0001`. There must be at least 1 of these 3 files present:
-    - A `*_rois.merge_or_discard_contributors.csv` file: ROIs initially detected which were then merged together to create a new ROI
-    - A `*_rois.proximity_rejected.csv` file: ROIs which were discarded due to proximity to another ROI
-    - A `*_rois.with_trace_ids.csv` file: ROIs after proximity-based filtration and labeling attribution to nuclei
+    - A `*.rois.*.merge_or_discard_contributors.csv` file: ROIs initially detected which were then merged together to create a new ROI
+    - A `*.rois.*.proximity_rejected.csv` file: ROIs which were discarded due to proximity to another ROI
+    - A `*.rois.*.with_trace_ids.csv` file: ROIs after proximity-based filtration and labeling attribution to nuclei
 
-The part of a filename before the first `.` must end with `_rois`, and the filename must end with one of the 3 suffixes above; any further dot-separated parts in between are allowed. 
-For example, for FOV `P0001` the `looptrace` Nextflow pipeline writes these files:
+A filename must say it holds ROIs, as `rois` its second dot-separated part (`P0001.rois.…`, as `looptrace` v0.24 and later name it) or with its first part ending in `_rois` (`P0001_rois.…`, as earlier releases do), and must end with one of the 3 suffixes above; any further dot-separated parts in between are allowed.
+For example, for FOV `P0001` the `looptrace` Nextflow pipeline (v0.24 and later) writes these files:
 
-* `P0001_rois.proximity_assessed.merge_or_discard_contributors.csv`
-* `P0001_rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_rejected.csv`
-* `P0001_rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_accepted.with_trace_ids.csv`
+* `P0001.rois.proximity_assessed.merge_or_discard_contributors.csv`
+* `P0001.rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_rejected.csv`
+* `P0001.rois.proximity_assessed.post_merge.nuclei_labeled.nuclei_filtered.proximity_accepted.with_trace_ids.csv`
+
+With nuclei branches, the `NON_NUCLEAR` branch's spots are `P0001.rois.proximity_assessed.post_merge.nuclei_labeled.outside_nuclei.proximity_accepted.with_trace_ids.csv`, read the same way.
 
 An empty data file (e.g., the merge contributors file when no ROIs were merged) is fine; it simply produces no layer.
 
@@ -73,13 +75,13 @@ Since runs may use different parameters, take the regional spots folder from the
     └── B13_REGIONAL_SPOT_POOLING/
         └── regional_spots_visualisation/
             ├── P0001/                        <- 2. then drag this folder
-            │   ├── P0001_rois.proximity_assessed.merge_or_discard_contributors.csv
-            │   ├── P0001_rois.proximity_assessed.[...].proximity_rejected.csv
-            │   └── P0001_rois.proximity_assessed.[...].with_trace_ids.csv
+            │   ├── P0001.rois.proximity_assessed.merge_or_discard_contributors.csv
+            │   ├── P0001.rois.proximity_assessed.[...].proximity_rejected.csv
+            │   └── P0001.rois.proximity_assessed.[...].with_trace_ids.csv
             └── ...
 ```
 
-__Earlier `looptrace` output__: a per-FOV folder with files named like `P0001_rois.merge_or_discard_contributors.csv`, `P0001_rois.proximity_rejected.csv`, and `P0001_rois.with_trace_ids.csv` still works in the same way.
+__Earlier `looptrace` output__: a per-FOV folder with files named like `P0001_rois.proximity_assessed.merge_or_discard_contributors.csv` (Nextflow pipeline before v0.24), or `P0001_rois.merge_or_discard_contributors.csv`, `P0001_rois.proximity_rejected.csv`, and `P0001_rois.with_trace_ids.csv` (earlier still), works in the same way.
 
 ### File format notes
 * For each spot, the following must be parsed:

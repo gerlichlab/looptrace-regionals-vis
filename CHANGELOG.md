@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.7.0] - 2026-10-07
+
+### Changed
+* Read the regional spots folders of `looptrace` v0.24. From v0.24 a field of view's tables are named `P0001.rois.<steps>.csv`, with `rois` a name part of its own, where earlier releases wrote `P0001_rois.<steps>.csv`; the plugin accepted only the latter, so dropping a v0.24 folder gave napari no data ("returned no data"). Both spellings are now read; the columns are the same.
+* Checked under napari 0.9.2 as well as 0.4.19: the test suite passes on both. The napari pin (`==0.4.19.post1` on macOS) is unchanged, since napari 0.9 needs Python 3.11 or later and this project still supports 3.10.
+
 ## [v0.6.0] - 2026-04-19
 
 ### Changed
