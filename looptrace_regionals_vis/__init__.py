@@ -5,7 +5,7 @@ from pathlib import Path
 
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 _PACKAGE_NAME = package = Path(__file__).parent.name
 
