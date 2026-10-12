@@ -1,11 +1,6 @@
 """Tests for this package's example files"""
 
-import sys
-
-if sys.version_info < (3, 11):
-    import importlib_resources  # pragma: no cover
-else:
-    import importlib.resources as importlib_resources  # pragma: no cover
+import importlib.resources as importlib_resources
 import string
 from unittest import mock
 

@@ -1,11 +1,6 @@
 """Napari plugin for visualising locus-specific points from looptrace"""
 
-import sys
-
-if sys.version_info < (3, 11):
-    import importlib_resources
-else:
-    import importlib.resources as importlib_resources
+import importlib.resources as importlib_resources
 from pathlib import Path
 
 from numpydoc_decorator import doc  # type: ignore[import-untyped]
