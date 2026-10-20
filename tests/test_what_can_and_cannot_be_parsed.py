@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from looptrace_regionals_vis import get_package_examples_folder, list_package_example_files
+from looptrace_regionals_vis import (
+    get_package_examples_folder,
+    list_package_example_files,
+)
 from looptrace_regionals_vis.reader import InputFileContentType, get_reader
 from looptrace_regionals_vis.roi import (
     MergeContributorRoi,

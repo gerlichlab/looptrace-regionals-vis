@@ -17,7 +17,9 @@ gen_infinity = st.sampled_from((-math.inf, math.inf))
 def test_point_construction_is_keyword_only(coordinates):
     z, y, x = coordinates
     Point3D(z=z, y=y, x=x)  # 'control'/pretest should work.
-    with pytest.raises(TypeError) as error_context:  # 'experiment' should trigger error.
+    with pytest.raises(
+        TypeError
+    ) as error_context:  # 'experiment' should trigger error.
         Point3D(z, y, x)  # pyright: ignore[reportCallIssue]
     expected_submessage = "takes 1 positional argument but 4 were given"
     observed_message = str(error_context.value)
@@ -46,12 +48,15 @@ def test_point_cannot_be_constructed_with_non_float(coordinates):
         st.one_of(legal_float, gen_infinity),
         st.one_of(legal_float, gen_infinity),
     ).filter(
-        lambda coords: any(math.isinf(c) for c in coords) and not any(math.isnan(c) for c in coords)
+        lambda coords: any(math.isinf(c) for c in coords)
+        and not any(math.isnan(c) for c in coords)
     )
 )
 def test_point_cannot_be_constructed_with_infinite(coordinates):
     z, y, x = coordinates
-    with pytest.raises(ValueError, match="Cannot use an infinite value as a point coordinate!"):
+    with pytest.raises(
+        ValueError, match="Cannot use an infinite value as a point coordinate!"
+    ):
         Point3D(z=z, y=y, x=x)
 
 
@@ -61,10 +66,13 @@ def test_point_cannot_be_constructed_with_infinite(coordinates):
         st.one_of(legal_float, st.just(math.nan)),
         st.one_of(legal_float, st.just(math.nan)),
     ).filter(
-        lambda coords: any(math.isnan(c) for c in coords) and not any(math.isinf(c) for c in coords)
+        lambda coords: any(math.isnan(c) for c in coords)
+        and not any(math.isinf(c) for c in coords)
     )
 )
 def test_point_cannot_be_constructed_with_nan(coordinates):
     z, y, x = coordinates
-    with pytest.raises(ValueError, match="Cannot use a null numeric as a point coordinate!"):
+    with pytest.raises(
+        ValueError, match="Cannot use a null numeric as a point coordinate!"
+    ):
         Point3D(z=z, y=y, x=x)

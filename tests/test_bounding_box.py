@@ -17,7 +17,9 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("dimname", [f.name for f in dataclasses.fields(Point3D)])
 
 
-def gen_legal_coordinate(*, min_value: Optional[float] = None, max_value: Optional[float] = None):
+def gen_legal_coordinate(
+    *, min_value: Optional[float] = None, max_value: Optional[float] = None
+):
     return st.floats(
         min_value=min_value, max_value=max_value, allow_nan=False, allow_infinity=False
     )
@@ -31,7 +33,9 @@ def gen_pair(*, min_value: Optional[float] = None, max_value: Optional[float] = 
 
 
 @st.composite
-def gen_bbox_legit(draw, *, min_z: Optional[float] = None, max_z: Optional[float] = None):
+def gen_bbox_legit(
+    draw, *, min_z: Optional[float] = None, max_z: Optional[float] = None
+):
     """Generate a valid bounding box, center valid w.r.t. box bounds."""
     (z1, z2) = draw(gen_pair(min_value=min_z, max_value=max_z))
     (y1, y2), (x1, x2) = draw(st.tuples(gen_pair(), gen_pair()))
@@ -64,7 +68,9 @@ def gen_bbox_arguments_with_contextually_illegal_center(draw):
     xMin, xMax = min(x1, x2), max(x1, x2)
 
     # Gate on the condition that we've generated at least one problem, as desired.
-    hyp.assume(zc < zMin or zc > zMax or yc < yMin or yc > yMax or xc < xMin or xc > xMax)
+    hyp.assume(
+        zc < zMin or zc > zMax or yc < yMin or yc > yMax or xc < xMin or xc > xMax
+    )
 
     return {
         "zc": zc,
@@ -82,7 +88,9 @@ def gen_bbox_arguments_with_contextually_illegal_center(draw):
 @st.composite
 def gen_bbox_arguments_with_contextually_illegal_endpoints(draw):
     """Generate a valid bounding box, center valid w.r.t. box bounds."""
-    (zMin, zMax), (yMin, yMax), (xMin, xMax) = draw(st.tuples(gen_pair(), gen_pair(), gen_pair()))
+    (zMin, zMax), (yMin, yMax), (xMin, xMax) = draw(
+        st.tuples(gen_pair(), gen_pair(), gen_pair())
+    )
 
     # We want at least one such nonsense bounds.
     hyp.assume(zMin > zMax or yMin > yMax or xMin > xMax)
@@ -125,17 +133,24 @@ def test_rectangle_protocol_support(box, api_member, validation_attribute):
     ), f"Expected {exp} (from .{validation_attribute}) but got {obs} (from .{api_member}())"
 
 
-@hyp.given(error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_center())
+@hyp.given(
+    error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_center()
+)
 def test_center_must_be_within_bounds(error_inducing_arguments):
     with pytest.raises(
-        ValueError, match="For each dimension, center coordinate must be within min/max bounds!"
+        ValueError,
+        match="For each dimension, center coordinate must be within min/max bounds!",
     ):
         BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
 
 
-@hyp.given(error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_endpoints())
+@hyp.given(
+    error_inducing_arguments=gen_bbox_arguments_with_contextually_illegal_endpoints()
+)
 def test_endpoints_must_make_sense(error_inducing_arguments):
-    with pytest.raises(ValueError, match="For each dimension, min must be no more than max!"):
+    with pytest.raises(
+        ValueError, match="For each dimension, min must be no more than max!"
+    ):
         BoundingBox3D.from_flat_arguments(**error_inducing_arguments)
 
 
@@ -155,12 +170,18 @@ def test_diff_between_max_and_center_is_nonnegative_for_all_dimensions(box, dimn
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=50))
-@hyp.settings(max_examples=1000)  # Bump up example count here since the logic is tricky.
-def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_central(box):
+@hyp.settings(
+    max_examples=1000
+)  # Bump up example count here since the logic is tricky.
+def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_central(
+    box,
+):
     is_center_flags: list[bool] = [
         is_center for _, _, _, _, is_center in box.iter_z_slices_nonnegative()
     ]
-    num_central_exp = 0 if round(box.center.z) < 0 or round(box.center.z) > box.get_zMax() else 1
+    num_central_exp = (
+        0 if round(box.center.z) < 0 or round(box.center.z) > box.get_zMax() else 1
+    )
     num_central_obs = sum(is_center_flags)
     assert (
         num_central_obs == num_central_exp

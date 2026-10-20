@@ -3,7 +3,13 @@
 import pytest
 
 from looptrace_regionals_vis import get_package_examples_folder
-from looptrace_regionals_vis.colors import IBM_BLUE, IBM_ORANGE, IBM_PINK, IBM_PURPLE, IBM_YELLOW
+from looptrace_regionals_vis.colors import (
+    IBM_BLUE,
+    IBM_ORANGE,
+    IBM_PINK,
+    IBM_PURPLE,
+    IBM_YELLOW,
+)
 from looptrace_regionals_vis.reader import COLOR_PARAMS_KEY, LayerParams, get_reader
 from looptrace_regionals_vis.roi import (
     MergeContributorRoi,

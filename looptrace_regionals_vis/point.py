@@ -23,7 +23,9 @@ class Point3D:  # noqa: D101
         return [f.name for f in dataclasses.fields(self)]
 
     def __post_init__(self) -> None:
-        value_types: dict[str, type] = {fn: type(getattr(self, fn)) for fn in self._field_names}
+        value_types: dict[str, type] = {
+            fn: type(getattr(self, fn)) for fn in self._field_names
+        }
         if not all(_is_float_like(t) for t in value_types.values()):
             raise TypeError(
                 f"Value of each field of point must be floating-point; got {value_types}"

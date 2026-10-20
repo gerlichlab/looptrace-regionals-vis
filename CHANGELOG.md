@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Allow napari 0.5 to 0.9 on macOS, as well as 0.4.19.post1, where it was pinned at 0.4.19.post1 since napari 0.9 needs Python 3.11. The plugin's own lock and macOS CI use napari 0.9.2; looptrace, which holds numpy below the 1.25 that napari 0.9 needs, keeps 0.4.19.
 * The Nix shell uses nixpkgs 26.05, with Poetry 2, and `poetry.lock` is in Poetry 2's format.
 * CI installs the newest Poetry, as it already did: the `poetry-version` the workflows set, `1.7.1`, is not an input of the action that installs Poetry, so it had no effect. Each CI job caches its environment separately, per Python.
-* Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do, at the version looptrace locks, 1.1.411 (#30). The package is checked strictly and the tests at the standard level.
+* Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do, at the version looptrace locks, 1.1.411 (#30). The package is checked strictly and the tests at the standard level. The line length is 88, ruff's default, where it was 100, as in the other repositories behind looptrace; ruff stays at 0.7.4.
 
 ## [v0.7.0] - 2026-10-07
 

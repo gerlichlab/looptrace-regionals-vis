@@ -14,7 +14,13 @@ from pandas.errors import EmptyDataError
 
 from .bounding_box import BoundingBox3D
 from .point import FloatLike, Point3D
-from .roi import MergeContributorRoi, MergedRoi, NonNuclearRoi, ProximityRejectedRoi, SingletonRoi
+from .roi import (
+    MergeContributorRoi,
+    MergedRoi,
+    NonNuclearRoi,
+    ProximityRejectedRoi,
+    SingletonRoi,
+)
 from .settings import (
     display_roi_id_for_singletons,
     get_maximum_number_of_proximity_partners_to_display,
@@ -28,7 +34,13 @@ IdAndContributors = tuple[RoiId, set[RoiId]]
 Reader = Callable[[PathLike], list[FullDataLayer]]
 # A row of a table, from column name to value. pandas types each value by its column.
 Record = dict[str, Any]
-Roi = MergeContributorRoi | MergedRoi | NonNuclearRoi | ProximityRejectedRoi | SingletonRoi
+Roi = (
+    MergeContributorRoi
+    | MergedRoi
+    | NonNuclearRoi
+    | ProximityRejectedRoi
+    | SingletonRoi
+)
 
 # Constants
 Z_COLUMN = "zc"
@@ -95,7 +107,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
     # See if the contents of the folder have at most 1 of each kind of data.
     count_by_kind = Counter(
-        InputFileContentType.from_filepath(f) for f in path.iterdir() if _is_plausible_input_file(f)
+        InputFileContentType.from_filepath(f)
+        for f in path.iterdir()
+        if _is_plausible_input_file(f)
     )
     if any(n != 1 for n in count_by_kind.values()):
         do_not_parse(
@@ -122,7 +136,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
         # Each file type may have a particular parse strategy.
         for file_type, file_path in file_by_kind.items():
-            logging.debug("Processing data for file type %s: %s", file_type.name, file_path)
+            logging.debug(
+                "Processing data for file type %s: %s", file_type.name, file_path
+            )
             # Each list holds only ROIs of the type it's keyed by.
             rois_by_type: dict[type[Roi], list[Roi]]
             if file_type == InputFileContentType.MergeContributors:
@@ -156,7 +172,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                     ]
                 }
             else:
-                raise RuntimeError(f"Unexpected file type (can't determine ROI type)! {file_type}")
+                raise RuntimeError(
+                    f"Unexpected file type (can't determine ROI type)! {file_type}"
+                )
 
             # For some file types, this loop is trivial (single-element rois_by_type).
             for roi_type, rois in rois_by_type.items():
@@ -184,7 +202,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             ]
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
-                logging.debug("Point count for ROI type %s: %d", roi_type.__name__, len(corners))
+                logging.debug(
+                    "Point count for ROI type %s: %d", roi_type.__name__, len(corners)
+                )
 
                 # 2. Build up collection of layer parameters.
                 params: dict[str, object] = {
@@ -207,7 +227,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             {
                                 "mergeId": [
                                     r.id if isinstance(r, MergedRoi) else r.merge_index
-                                    for r in cast("list[MergeContributorRoi | MergedRoi]", rois)
+                                    for r in cast(
+                                        "list[MergeContributorRoi | MergedRoi]", rois
+                                    )
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
@@ -217,13 +239,16 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                         format_string_parts.append("i={mergeId}")
                     if roi_type in [MergedRoi, SingletonRoi]:
                         logging.debug(
-                            "Adding trace IDs to display for ROIs of type: %s", roi_type.__name__
+                            "Adding trace IDs to display for ROIs of type: %s",
+                            roi_type.__name__,
                         )
                         features.update(
                             {
                                 "traceId": [
                                     r.traceId.get
-                                    for r in cast("list[MergedRoi | SingletonRoi]", rois)
+                                    for r in cast(
+                                        "list[MergedRoi | SingletonRoi]", rois
+                                    )
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
@@ -232,7 +257,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                     if roi_type == SingletonRoi:
                         if display_roi_id_for_singletons():
                             logging.debug(
-                                "Adding ROI ID to display for ROIs of type: %s", roi_type.__name__
+                                "Adding ROI ID to display for ROIs of type: %s",
+                                roi_type.__name__,
                             )
                             features.update(
                                 {
@@ -252,14 +278,18 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             )
                 elif roi_type == ProximityRejectedRoi:
                     # Checked at run time, though the setting is annotated as an int.
-                    match cast("object", get_maximum_number_of_proximity_partners_to_display()):
+                    match cast(
+                        "object", get_maximum_number_of_proximity_partners_to_display()
+                    ):
                         case 0:
                             logging.debug(
-                                "Skipping annotation for ROIs of type: %s", roi_type.__name__
+                                "Skipping annotation for ROIs of type: %s",
+                                roi_type.__name__,
                             )
                         case int(max_neighbors):
                             logging.debug(
-                                "Adding annotation for ROIs of type: %s", roi_type.__name__
+                                "Adding annotation for ROIs of type: %s",
+                                roi_type.__name__,
                             )
                             features = {
                                 "proximityAnnotation": [
@@ -276,7 +306,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
 
                 if features:
                     if not format_string_parts:
-                        raise RuntimeError("Features is nonempty but format string parts is empty")
+                        raise RuntimeError(
+                            "Features is nonempty but format string parts is empty"
+                        )
                     text_properties: dict[str, object] = {
                         "string": ", ".join(format_string_parts),
                         "size": TEXT_SIZE,
@@ -296,7 +328,9 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
     return build_layers
 
 
-def _get_proximity_rejects_neighbors_text(roi: ProximityRejectedRoi, *, limit: int) -> str:
+def _get_proximity_rejects_neighbors_text(
+    roi: ProximityRejectedRoi, *, limit: int
+) -> str:
     neighbors: list[RoiId] = sorted(roi.neighbors)[:limit]
     sep: str = ","
     extra: int = len(roi.neighbors) - len(neighbors)
@@ -334,9 +368,16 @@ def _parse_non_contributor_non_proximal_rois(
         logging.warning("Empty data file: %s", path)
         return []
     for _, row in data.iterrows():  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-        roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
-            _parse_nucleus_labeled_record(row)  # pyright: ignore[reportUnknownArgumentType]
-        )
+        (
+            roiId,
+            time,
+            channel,
+            box,
+            traceId,
+            trace_partners,
+            maybe_nuc_num,
+            maybe_id_and_contribs,
+        ) = _parse_nucleus_labeled_record(row)  # pyright: ignore[reportUnknownArgumentType]
         roi: NonNuclearRoi | SingletonRoi | MergedRoi
         match (maybe_nuc_num, maybe_id_and_contribs):
             case (None, _):
@@ -423,7 +464,11 @@ def _parse_merge_contributor_record(row: "pd.Series[Any]") -> MergeContributorRo
         )
     time, channel, box = _parse_time_channel_box_trio(record)
     return MergeContributorRoi(
-        id=index, timepoint=time, channel=channel, bounding_box=box, merge_index=merge_index
+        id=index,
+        timepoint=time,
+        channel=channel,
+        bounding_box=box,
+        merge_index=merge_index,
     )
 
 
@@ -453,7 +498,11 @@ def _parse_nucleus_labeled_record(
     merge_column_name = "neighbors"
     id_and_contribs: Optional[IdAndContributors]
     raw_merge_indices = record[merge_column_name]
-    if raw_merge_indices is None or raw_merge_indices == "" or pd.isna(raw_merge_indices):
+    if (
+        raw_merge_indices is None
+        or raw_merge_indices == ""
+        or pd.isna(raw_merge_indices)
+    ):
         id_and_contribs = None
     else:
         roi_id: RoiId = record[ROI_ID_COLUMN]
@@ -462,7 +511,16 @@ def _parse_nucleus_labeled_record(
 
     time, channel, box = _parse_time_channel_box_trio(record)
 
-    return roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, id_and_contribs
+    return (
+        roiId,
+        time,
+        channel,
+        box,
+        traceId,
+        trace_partners,
+        maybe_nuc_num,
+        id_and_contribs,
+    )
 
 
 def _parse_roi_ids_field(
@@ -480,7 +538,9 @@ def _parse_roi_ids_field(
     elif pd.isna(raw_value):
         result = set()
     else:
-        raise TypeError(f"Got {type(raw_value)}, not str or int, from '{key}': {raw_value}")
+        raise TypeError(
+            f"Got {type(raw_value)}, not str or int, from '{key}': {raw_value}"
+        )
     return result
 
 

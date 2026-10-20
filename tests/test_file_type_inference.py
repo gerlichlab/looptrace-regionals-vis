@@ -72,7 +72,11 @@ def test_from_filepath_requires_path(arg):
             ("_rois", "", None),
             ("_rois", ".CSV", None),
             ("_rois", ".merge_contributors.csv", None),
-            ("_rois", ".merge_or_discard_contributors.csv", InputFileContentType.MergeContributors),
+            (
+                "_rois",
+                ".merge_or_discard_contributors.csv",
+                InputFileContentType.MergeContributors,
+            ),
             ("_rois", ".proximity_rejected.csv", InputFileContentType.ProximityRejects),
             ("_rois", ".proximity_accepted.csv", None),
             ("_rois", ".proximity_rejected.nuclei_labeled.csv", None),
@@ -81,7 +85,11 @@ def test_from_filepath_requires_path(arg):
             ("_rois", ".csv", None),
             ("_rois", ".nuclei_labeled.proximity_accepted.csv", None),
             # looptrace v0.24 on: "rois" a name part of its own, P0001.rois.<steps>.csv
-            (".rois", ".merge_or_discard_contributors.csv", InputFileContentType.MergeContributors),
+            (
+                ".rois",
+                ".merge_or_discard_contributors.csv",
+                InputFileContentType.MergeContributors,
+            ),
             (".rois", ".proximity_rejected.csv", InputFileContentType.ProximityRejects),
             (".rois", ".with_trace_ids.csv", InputFileContentType.NucleiLabeled),
             (".rois", ".proximity_accepted.csv", None),
@@ -93,7 +101,9 @@ def test_from_filepath_requires_path(arg):
         ]
     ],
 )
-def test_rois_suffix_is_required(tmp_path, get_status, prep_arg, file_type_inference_params):
+def test_rois_suffix_is_required(
+    tmp_path, get_status, prep_arg, file_type_inference_params
+):
     suffix: str = file_type_inference_params.suffix
     extension: str = file_type_inference_params.extension
     arg = prep_arg(tmp_path, f"P0001{suffix}{extension}")

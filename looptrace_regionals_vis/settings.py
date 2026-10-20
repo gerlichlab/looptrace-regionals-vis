@@ -27,7 +27,8 @@ def get_maximum_number_of_proximity_partners_to_display() -> int:
     return (
         int(
             os.getenv(
-                "LOOPTRACE__MAX_PROXIMITY_PARTNERS_TO_DISPLAY", DEFAULT_MAX_NUM_PARTNERS_TO_DISPLAY
+                "LOOPTRACE__MAX_PROXIMITY_PARTNERS_TO_DISPLAY",
+                DEFAULT_MAX_NUM_PARTNERS_TO_DISPLAY,
             )
         )
         if display_proximity_rejects_annotation()

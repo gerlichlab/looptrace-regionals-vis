@@ -41,7 +41,9 @@ class MergeContributorRoi(RegionOfInterest):
 
     def __post_init__(self) -> None:
         if self.id == self.merge_index:
-            raise ValueError(f"A {self.__class__.__name__}'s index can't equal its merge_index")
+            raise ValueError(
+                f"A {self.__class__.__name__}'s index can't equal its merge_index"
+            )
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -58,7 +60,9 @@ class ProximityRejectedRoi(RegionOfInterest):
         match self.neighbors:
             case set():
                 if len(self.neighbors) == 0:
-                    raise ValueError(f"Set of neighbors for {type(self).__name__} is empty")
+                    raise ValueError(
+                        f"Set of neighbors for {type(self).__name__} is empty"
+                    )
             case _:
                 raise TypeError(
                     f"Expected a set for neighbors for {type(self).__name__} but got {type(self.neighbors).__name__}"

@@ -134,7 +134,9 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
             or self.center.x < self.xMin
             or self.center.x > self.xMax
         ):
-            raise ValueError("For each dimension, center coordinate must be within min/max bounds!")
+            raise ValueError(
+                "For each dimension, center coordinate must be within min/max bounds!"
+            )
 
     # Avoid repeated computation of the rounded value.
     @cached_property
