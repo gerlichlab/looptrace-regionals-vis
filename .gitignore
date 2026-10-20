@@ -8,7 +8,6 @@ __pycache__/
 # test-related
 .coverage*
 .hypothesis/
-.mypy_cache/
 
 # IDE-related
 .vscode

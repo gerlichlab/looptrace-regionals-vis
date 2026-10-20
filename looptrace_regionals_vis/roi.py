@@ -1,7 +1,7 @@
 """Region of interest (ROI) abstractions"""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from gertils.types import NucleusNumber, TraceIdFrom0
 
@@ -116,7 +116,8 @@ class MergedRoi(RegionOfInterest):
     nucleus_number: NucleusNumber
 
     def __post_init__(self) -> None:
-        if not isinstance(self.contributors, set):
+        # Checked at run time, since callers may pass any type despite the annotation.
+        if not isinstance(cast("object", self.contributors), set):
             raise TypeError(
                 f"For a {self.__class__.__name__}, contributors must be set, not {type(self.contributors).__name__}"
             )

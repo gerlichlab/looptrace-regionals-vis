@@ -18,7 +18,7 @@ def test_point_construction_is_keyword_only(coordinates):
     z, y, x = coordinates
     Point3D(z=z, y=y, x=x)  # 'control'/pretest should work.
     with pytest.raises(TypeError) as error_context:  # 'experiment' should trigger error.
-        Point3D(z, y, x)
+        Point3D(z, y, x)  # pyright: ignore[reportCallIssue]
     expected_submessage = "takes 1 positional argument but 4 were given"
     observed_message = str(error_context.value)
     assert (

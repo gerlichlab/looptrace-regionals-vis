@@ -5,11 +5,11 @@ from collections import Counter
 from collections.abc import Callable, Sized
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Optional, TypeAlias
+from typing import Any, Literal, Optional, cast
 
 import pandas as pd
 from gertils.types import NucleusNumber, TraceIdFrom0
-from numpydoc_decorator import doc  # type: ignore[import-untyped]
+from numpydoc_decorator import doc
 from pandas.errors import EmptyDataError
 
 from .bounding_box import BoundingBox3D
@@ -19,12 +19,16 @@ from .settings import (
     display_roi_id_for_singletons,
     get_maximum_number_of_proximity_partners_to_display,
 )
-from .types import Channel, LayerParams, PathOrPaths, RoiId, Timepoint
+from .types import Channel, LayerParams, PathLike, PathOrPaths, RoiId, Timepoint
 
 # Aliases
 FullDataLayer = tuple[list[list[list[int | FloatLike]]], LayerParams, Literal["shapes"]]
 IdAndContributors = tuple[RoiId, set[RoiId]]
-Reader = Callable[[PathOrPaths], list[FullDataLayer]]
+# get_reader gives a reader only for a single folder, the one the reader is called with.
+Reader = Callable[[PathLike], list[FullDataLayer]]
+# A row of a table, from column name to value. pandas types each value by its column.
+Record = dict[str, Any]
+Roi = MergeContributorRoi | MergedRoi | NonNuclearRoi | ProximityRejectedRoi | SingletonRoi
 
 # Constants
 Z_COLUMN = "zc"
@@ -76,12 +80,12 @@ class InputFileContentType(Enum):
 def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
     """Get a single-file parser with which to build layer data."""
 
-    def do_not_parse(msg, *, level=logging.DEBUG) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
+    def do_not_parse(msg: str, *, level: int = logging.DEBUG) -> None:
         logging.log(msg=msg, level=level)
 
     # Check that the given path is indeed a single extant file.
     if isinstance(path, str):
-        path: Path = Path(path)  # type: ignore[no-redef]
+        path = Path(path)
     if not isinstance(path, Path):
         do_not_parse(f"Can only parse Path, not {type(path).__name__}")
         return None
@@ -100,7 +104,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
         return None
 
     # Create the parser.
-    def build_layers(folder) -> list[FullDataLayer]:  # type: ignore[no-untyped-def]  # noqa: ANN001 PLR0915
+    def build_layers(folder: PathLike) -> list[FullDataLayer]:  # noqa: PLR0915
         # Map (uniquely!) each data kind/status to a file to parse.
         file_by_kind: dict[InputFileContentType, Path] = {}
         for fp in filter(_is_plausible_input_file, Path(folder).iterdir()):
@@ -119,34 +123,35 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
         # Each file type may have a particular parse strategy.
         for file_type, file_path in file_by_kind.items():
             logging.debug("Processing data for file type %s: %s", file_type.name, file_path)
+            # Each list holds only ROIs of the type it's keyed by.
+            rois_by_type: dict[type[Roi], list[Roi]]
             if file_type == InputFileContentType.MergeContributors:
-                parse_result: list[MergeContributorRoi]
+                parse_result: list[Roi]
                 try:
-                    data = pd.read_csv(file_path)
+                    data = pd.read_csv(file_path)  # pyright: ignore[reportUnknownMemberType]
                 except EmptyDataError:
                     logging.warning("Empty data file: %s", file_path)
                     parse_result = []
                 else:
                     parse_result = [
-                        _parse_merge_contributor_record(row) for _, row in data.iterrows()
+                        _parse_merge_contributor_record(row)  # pyright: ignore[reportUnknownArgumentType]
+                        for _, row in data.iterrows()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
                     ]
                 rois_by_type = {MergeContributorRoi: parse_result}
             elif file_type == InputFileContentType.NucleiLabeled:
                 rois_by_type = {}
                 for r in _parse_non_contributor_non_proximal_rois(file_path):
-                    # Ignore type check here since we can't properly disambiguate the subcases
-                    # w.r.t. ROI type.
-                    rois_by_type.setdefault(type(r), []).append(r)  # type: ignore[arg-type]
+                    rois_by_type.setdefault(type(r), []).append(r)
             elif file_type == InputFileContentType.ProximityRejects:
                 rois_by_type = {
-                    ProximityRejectedRoi: [  # type: ignore[dict-item]
+                    ProximityRejectedRoi: [
                         ProximityRejectedRoi(
                             id=i,
                             timepoint=t,
                             channel=c,
                             bounding_box=b,
                             neighbors=ns,
-                        )  # type: ignore[misc]
+                        )
                         for i, ns, t, c, b in _parse_proximity_rejects(file_path)
                     ]
                 }
@@ -164,7 +169,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                 # 1. build up the points for a layer.
                 corners: list[list[list[int | FloatLike]]] = []
                 shapes: list[str] = []
-                for r in rois:  # type: ignore[assignment]
+                for r in rois:
                     for (
                         q1,
                         q2,
@@ -179,7 +184,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             ]
                         )
                         shapes.append("rectangle" if is_center_slice else "ellipse")
-                logging.debug("Point count for ROI type %s: %d", r.typename, len(corners))
+                logging.debug("Point count for ROI type %s: %d", roi_type.__name__, len(corners))
 
                 # 2. Build up collection of layer parameters.
                 params: dict[str, object] = {
@@ -201,8 +206,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                         features.update(
                             {
                                 "mergeId": [
-                                    r.id if roi_type == MergedRoi else r.merge_index
-                                    for r in rois
+                                    r.id if isinstance(r, MergedRoi) else r.merge_index
+                                    for r in cast("list[MergeContributorRoi | MergedRoi]", rois)
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
@@ -217,8 +222,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                         features.update(
                             {
                                 "traceId": [
-                                    r.traceId.get  # type: ignore[attr-defined]
-                                    for r in rois
+                                    r.traceId.get
+                                    for r in cast("list[MergedRoi | SingletonRoi]", rois)
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
@@ -233,7 +238,7 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                                 {
                                     "roiId": [
                                         r.id
-                                        for r in rois
+                                        for r in cast("list[SingletonRoi]", rois)
                                         for _ in r.bounding_box.iter_z_slices_nonnegative()
                                     ]
                                 }
@@ -246,7 +251,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                                 roi_type.__name__,
                             )
                 elif roi_type == ProximityRejectedRoi:
-                    match get_maximum_number_of_proximity_partners_to_display():
+                    # Checked at run time, though the setting is annotated as an int.
+                    match cast("object", get_maximum_number_of_proximity_partners_to_display()):
                         case 0:
                             logging.debug(
                                 "Skipping annotation for ROIs of type: %s", roi_type.__name__
@@ -257,8 +263,8 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
                             )
                             features = {
                                 "proximityAnnotation": [
-                                    f"{r.id}: {_get_proximity_rejects_neighbors_text(r, limit=max_neighbors)}"  # type: ignore[arg-type]
-                                    for r in rois
+                                    f"{r.id}: {_get_proximity_rejects_neighbors_text(r, limit=max_neighbors)}"
+                                    for r in cast("list[ProximityRejectedRoi]", rois)
                                     for _ in r.bounding_box.iter_z_slices_nonnegative()
                                 ]
                             }
@@ -323,13 +329,13 @@ def _parse_non_contributor_non_proximal_rois(
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     try:
-        data = pd.read_csv(path)
+        data = pd.read_csv(path)  # pyright: ignore[reportUnknownMemberType]
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
-    for _, row in data.iterrows():
+    for _, row in data.iterrows():  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
         roiId, time, channel, box, traceId, trace_partners, maybe_nuc_num, maybe_id_and_contribs = (
-            _parse_nucleus_labeled_record(row)
+            _parse_nucleus_labeled_record(row)  # pyright: ignore[reportUnknownArgumentType]
         )
         roi: NonNuclearRoi | SingletonRoi | MergedRoi
         match (maybe_nuc_num, maybe_id_and_contribs):
@@ -343,18 +349,18 @@ def _parse_non_contributor_non_proximal_rois(
                     bounding_box=box,
                     traceId=traceId,
                     trace_partners=trace_partners,
-                    nucleus_number=nuc_num,  # type: ignore[arg-type]
+                    nucleus_number=nuc_num,
                 )
             case (nuc_num, (main_id, contrib_ids)):
                 roi = MergedRoi(
-                    id=main_id,  # type: ignore[arg-type]
+                    id=main_id,
                     timepoint=time,
                     channel=channel,
                     bounding_box=box,
-                    nucleus_number=nuc_num,  # type: ignore[arg-type]
+                    nucleus_number=nuc_num,
                     traceId=traceId,
                     trace_partners=trace_partners,
-                    contributors=contrib_ids,  # type: ignore[arg-type]
+                    contributors=contrib_ids,
                 )
             case _:
                 raise Exception(  # noqa: TRY002
@@ -373,7 +379,7 @@ def _parse_proximity_rejects(
     path: Path,
 ) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
     try:
-        spot_data = pd.read_csv(path, index_col=None)
+        spot_data = pd.read_csv(path, index_col=None)  # pyright: ignore[reportUnknownMemberType]
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
@@ -386,10 +392,10 @@ def _parse_proximity_rejects_table(
     return [
         (
             record[ROI_ID_COLUMN],
-            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),
-            *_parse_time_channel_box_trio(record),
+            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),  # pyright: ignore[reportUnknownArgumentType]
+            *_parse_time_channel_box_trio(record),  # pyright: ignore[reportUnknownArgumentType]
         )
-        for _, record in rois.iterrows()
+        for _, record in rois.iterrows()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
     ]
 
 
@@ -401,22 +407,19 @@ def _parse_neighbors(raw_value: str) -> set[RoiId]:
     raise ValueError(f"Repeated values are present among proximal neighbors: {values}")
 
 
-def _parse_merge_contributor_record(
-    record: pd.Series,  # type: ignore[type-arg]
-) -> MergeContributorRoi:
-    record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
+def _parse_merge_contributor_record(row: "pd.Series[Any]") -> MergeContributorRoi:
+    record: Record = row.to_dict()  # pyright: ignore[reportUnknownMemberType]
     index: RoiId = record[ROI_ID_COLUMN]
     merge_column_name = "mergeOutput"
     raw_merge_index = record[merge_column_name]
-    MergeIdType: TypeAlias = RoiId
-    merge_index: MergeIdType
-    if isinstance(raw_merge_index, MergeIdType):
+    merge_index: RoiId
+    if isinstance(raw_merge_index, RoiId):
         merge_index = raw_merge_index
     elif isinstance(raw_merge_index, str):
-        merge_index = MergeIdType(raw_merge_index)
+        merge_index = RoiId(raw_merge_index)
     else:
         raise TypeError(
-            f"Got {type(raw_merge_index)}, not str or {MergeIdType.__name__}, from '{merge_column_name}': {raw_merge_index}"
+            f"Got {type(raw_merge_index)}, not str or {RoiId.__name__}, from '{merge_column_name}': {raw_merge_index}"
         )
     time, channel, box = _parse_time_channel_box_trio(record)
     return MergeContributorRoi(
@@ -425,7 +428,7 @@ def _parse_merge_contributor_record(
 
 
 def _parse_nucleus_labeled_record(
-    record: pd.Series,  # type: ignore[type-arg]
+    row: "pd.Series[Any]",
 ) -> tuple[
     RoiId,
     Timepoint,
@@ -436,7 +439,7 @@ def _parse_nucleus_labeled_record(
     Optional[NucleusNumber],
     Optional[IdAndContributors],
 ]:
-    record: dict[str, int | FloatLike] = record.to_dict()  # type: ignore[no-redef]
+    record: Record = row.to_dict()  # pyright: ignore[reportUnknownMemberType]
 
     roiId: RoiId = record[ROI_ID_COLUMN]
     traceId: TraceIdFrom0 = TraceIdFrom0(record["traceId"])
@@ -463,18 +466,18 @@ def _parse_nucleus_labeled_record(
 
 
 def _parse_roi_ids_field(
-    row: pd.Series,  # type: ignore[type-arg]
+    row: Record,
     *,
     key: str,
     intra_field_delimiter: str = " ",
 ) -> set[RoiId]:
-    raw_value: object = row[key]
+    raw_value = row[key]
     result: set[RoiId]
     if isinstance(raw_value, int):
         result = {raw_value}
     elif isinstance(raw_value, str):
         result = set(map(int, raw_value.split(intra_field_delimiter)))
-    elif pd.isna(raw_value):  # type: ignore[call-overload]
+    elif pd.isna(raw_value):
         result = set()
     else:
         raise TypeError(f"Got {type(raw_value)}, not str or int, from '{key}': {raw_value}")
@@ -482,23 +485,23 @@ def _parse_roi_ids_field(
 
 
 def _parse_time_channel_box_trio(
-    record: dict[str, int | FloatLike] | pd.Series,  # type: ignore[type-arg]
+    row: "Record | pd.Series[Any]",
 ) -> tuple[Timepoint, Channel, BoundingBox3D]:
-    record: dict[str, int | FloatLike] = (  # type: ignore[no-redef]
-        record if isinstance(record, dict) else record.to_dict()
+    record: Record = (
+        row if isinstance(row, dict) else row.to_dict()  # pyright: ignore[reportUnknownMemberType]
     )
     time = record.pop(TIME_COLUMN)
     channel = record.pop(CHANNEL_COLUMN)
     box = BoundingBox3D(
         center=Point3D(z=record["zc"], y=record["yc"], x=record["xc"]),
-        zMin=record["zMin"],  # type: ignore[arg-type]
-        zMax=record["zMax"],  # type: ignore[arg-type]
-        yMin=record["yMin"],  # type: ignore[arg-type]
-        yMax=record["yMax"],  # type: ignore[arg-type]
-        xMin=record["xMin"],  # type: ignore[arg-type]
-        xMax=record["xMax"],  # type: ignore[arg-type]
+        zMin=record["zMin"],
+        zMax=record["zMax"],
+        yMin=record["yMin"],
+        yMax=record["yMax"],
+        xMin=record["xMin"],
+        xMax=record["xMax"],
     )
-    return time, channel, box  # type: ignore[return-value]
+    return time, channel, box
 
 
 @doc(

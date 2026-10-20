@@ -17,7 +17,10 @@ let py311 = pkgs.python311.withPackages (ps: with ps; [ numpy pandas ]);
 in
 pkgs.mkShell {
   name = "looptrace-loci-vis-env";
-  buildInputs = [ pkgs.poetry ];
+  buildInputs = [ pkgs.poetry ] ++ (if dev then [
+    # The pyright package from PyPI runs on Node.js; providing it here saves a download.
+    pkgs.nodejs
+  ] else []);
   shellHook = ''
     # To get this working on the lab machine, we need to modify Poetry's keyring interaction:
     # https://stackoverflow.com/questions/74438817/poetry-failed-to-unlock-the-collection

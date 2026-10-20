@@ -3,12 +3,14 @@
 import dataclasses
 from abc import abstractmethod
 from collections.abc import Iterable
+from functools import cached_property
 from math import floor
 from typing import Protocol
 
-from numpydoc_decorator import doc  # type: ignore[import-untyped]
+from numpydoc_decorator import doc
 
 from .point import Point3D
+from .types import FloatLike
 
 
 class RectangleLike(Protocol):
@@ -72,18 +74,18 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
     xMax: float
 
     @classmethod
-    def from_flat_arguments(  # type: ignore[no-untyped-def] # noqa: D102
+    def from_flat_arguments(  # noqa: D102
         cls,
         *,
-        zc,  # noqa: ANN001
-        yc,  # noqa: ANN001
-        xc,  # noqa: ANN001
-        zMin,  # noqa: ANN001
-        zMax,  # noqa: ANN001
-        yMin,  # noqa: ANN001
-        yMax,  # noqa: ANN001
-        xMin,  # noqa: ANN001
-        xMax,  # noqa: ANN001
+        zc: FloatLike,
+        yc: FloatLike,
+        xc: FloatLike,
+        zMin: float,
+        zMax: float,
+        yMin: float,
+        yMax: float,
+        xMin: float,
+        xMax: float,
     ) -> "BoundingBox3D":
         point = Point3D(z=zc, y=yc, x=xc)
         return cls(
@@ -133,8 +135,11 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
             or self.center.x > self.xMax
         ):
             raise ValueError("For each dimension, center coordinate must be within min/max bounds!")
-        # Avoid repeated computation of the rounded value.
-        object.__setattr__(self, "_nearest_z_slice", round(self.center.z))
+
+    # Avoid repeated computation of the rounded value.
+    @cached_property
+    def _nearest_z_slice(self) -> int:
+        return round(self.center.z)
 
     def iter_z_slices_nonnegative(
         self,
@@ -145,5 +150,5 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
             q2 = Point3D(z=float(z), y=self.yMin, x=self.xMin)
             q3 = Point3D(z=float(z), y=self.yMax, x=self.xMin)
             q4 = Point3D(z=float(z), y=self.yMax, x=self.xMax)
-            is_center = z == self._nearest_z_slice  # type: ignore[attr-defined]
+            is_center = z == self._nearest_z_slice
             yield q1, q2, q3, q4, is_center

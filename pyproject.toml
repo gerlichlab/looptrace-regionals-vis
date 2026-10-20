@@ -62,8 +62,9 @@ ruff = "==0.7.4"  # https://github.com/astral-sh/ruff/issues/14681
 optional = true
 
 [tool.poetry.group.linting.dependencies]
-mypy = ">=1.0.1"
 pandas-stubs = "*"
+# The version looptrace pins, so the projects are type-checked by the same pyright.
+pyright = "==1.1.411"
 ruff = "==0.7.4"  # https://github.com/astral-sh/ruff/issues/14681
 
 [tool.poetry.group.testsuite.dependencies]
@@ -73,38 +74,17 @@ pytest = ">=7.1.0"
 typer = "*"
 
 [tool.codespell]
-skip = ".git,.mypy_cache,.nox,.vscode,__pycache__,poetry.lock"
+skip = ".git,.vscode,__pycache__,poetry.lock"
 builtin = "clear,rare,informal,usage,code,names"
 ignore-words-list = "jupyter,iff"
 check-filenames = true
 uri-ignore-words-list = "*"
 
-[tool.mypy]
-files = ['looptrace_regionals_vis/*.py', 'tests/*.py']
-plugins = ["pydantic.mypy"]
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-warn_unreachable = true
-enable_error_code = ["ignore-without-code"]
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disable_error_code = "annotation-unchecked"
-disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = "looptrace_regionals_vis.*"
-disallow_untyped_defs = true
-disallow_untyped_calls = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_any_unimported = true
-disallow_any_explicit = true
-disallow_any_generics = true
-disallow_subclassing_any = true
-implicit_optional = false
-strict_optional = true
+[tool.pyright]
+include = ["looptrace_regionals_vis", "tests"]
+# The package itself gets strict checking; the tests get the standard level.
+strict = ["looptrace_regionals_vis"]
+reportUnnecessaryTypeIgnoreComment = "error"
 
 [tool.ruff]
 # Black uses line-length = 88, but allows exceptions when breaking the line
@@ -175,6 +155,11 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"typings/*" = [
+    # Stubs copy the signatures of third-party code, which we can't change.
+    "FBT001",  # Boolean-typed positional argument in function definition
+    "FBT002",  # Boolean default positional argument in function definition
+]
 "tests/*" = [
     # Ignore some groups of checks in our test code.
     "ANN",  # Type annotations

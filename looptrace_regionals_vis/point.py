@@ -3,8 +3,7 @@
 import dataclasses
 import math
 
-import numpy as np
-from numpydoc_decorator import doc  # type: ignore[import-untyped]
+from numpydoc_decorator import doc
 
 from .types import FloatLike
 
@@ -24,7 +23,7 @@ class Point3D:  # noqa: D101
         return [f.name for f in dataclasses.fields(self)]
 
     def __post_init__(self) -> None:
-        value_types = {fn: type(getattr(self, fn)) for fn in self._field_names}
+        value_types: dict[str, type] = {fn: type(getattr(self, fn)) for fn in self._field_names}
         if not all(_is_float_like(t) for t in value_types.values()):
             raise TypeError(
                 f"Value of each field of point must be floating-point; got {value_types}"
@@ -36,4 +35,5 @@ class Point3D:  # noqa: D101
 
 
 def _is_float_like(t: type) -> bool:
-    return issubclass(t, float | np.float64)
+    # numpy's float64 subclasses float, so this accepts it too.
+    return issubclass(t, float)

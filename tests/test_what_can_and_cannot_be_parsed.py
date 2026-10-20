@@ -61,7 +61,8 @@ def test_path_which_is_not_extant_directory_cannot_be_parsed(tmp_path):
 )
 def test_non_csv_files_are_skipped(tmp_path, wrap, paths_to_mutate):
     expected_roi_type_loss = sum(
-        len(ROI_TYPES_BY_FILE_TYPE[ft])
+        # Each example file's name gives its type, so ft is never None.
+        len(ROI_TYPES_BY_FILE_TYPE[ft])  # pyright: ignore[reportArgumentType]
         for ft in map(InputFileContentType.from_filepath, paths_to_mutate)
     )
 
@@ -73,6 +74,7 @@ def test_non_csv_files_are_skipped(tmp_path, wrap, paths_to_mutate):
         shutil.copy(src, dst)
 
     read_data = get_reader(wrap(tmp_path))
+    assert read_data is not None
     layers = read_data(tmp_path)
 
     # Input data means every ROI type should be found.
@@ -88,6 +90,7 @@ def test_a_folder_named_as_looptrace_v0_24_names_it_is_read(tmp_path, wrap):
     assert all(".rois." in p.name for p in tmp_path.iterdir())
 
     read_data = get_reader(wrap(tmp_path))
+    assert read_data is not None
     layers = read_data(tmp_path)
 
     assert len(layers) == NUM_ROI_TYPES
@@ -100,6 +103,7 @@ def test_csv_with_unparsable_data_processing_status_is_skipped(tmp_path, wrap):
     (tmp_path / "P0001_rois.unfiltered.csv").touch()
 
     read_data = get_reader(wrap(tmp_path))
+    assert read_data is not None
     layers = read_data(tmp_path)
 
     # Input data means every ROI type should be found.
