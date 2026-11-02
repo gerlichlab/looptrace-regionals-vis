@@ -8,7 +8,7 @@
   }) {},
   dev ? true,
 }:
-let py312 = pkgs.python312.withPackages (ps: with ps; [ numpy pandas ]);
+let py312 = pkgs.python312;
     poetryExtras = if dev then [ "coverage" "formatting" "linting" "testsuite" ] else [ ];
     poetryInstallExtras = (
       if poetryExtras == [] then ""
@@ -16,7 +16,7 @@ let py312 = pkgs.python312.withPackages (ps: with ps; [ numpy pandas ]);
     );
 in
 pkgs.mkShell {
-  name = "looptrace-loci-vis-env";
+  name = "looptrace-regionals-vis-env";
   buildInputs = [ pkgs.poetry ] ++ (if dev then [
     # The pyright package from PyPI runs on Node.js; providing it here saves a download.
     pkgs.nodejs
