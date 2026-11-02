@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 * Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do, at the version looptrace locks, 1.1.411 (#30). The package is checked strictly and the tests at the standard level. The line length is 88, ruff's default, where it was 100, as in the other repositories behind looptrace; ruff stays at 0.7.4.
 
+### Removed
+* Support for Python 3.11. looptrace-regionals-vis requires Python 3.12, as gertils v0.8.0 does, and the newest releases of numpy, zarr and numcodecs. looptrace already requires Python 3.12. CI and the Nix shell use Python 3.12, and ruff targets it.
+
 ## [v0.8.0] - 2026-10-13
 
 ### Changed
