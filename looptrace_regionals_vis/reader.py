@@ -144,14 +144,14 @@ def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
             if file_type == InputFileContentType.MergeContributors:
                 parse_result: list[Roi]
                 try:
-                    data = pd.read_csv(file_path)  # pyright: ignore[reportUnknownMemberType]
+                    data = pd.read_csv(file_path)
                 except EmptyDataError:
                     logging.warning("Empty data file: %s", file_path)
                     parse_result = []
                 else:
                     parse_result = [
-                        _parse_merge_contributor_record(row)  # pyright: ignore[reportUnknownArgumentType]
-                        for _, row in data.iterrows()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                        _parse_merge_contributor_record(row)
+                        for _, row in data.iterrows()
                     ]
                 rois_by_type = {MergeContributorRoi: parse_result}
             elif file_type == InputFileContentType.NucleiLabeled:
@@ -363,11 +363,11 @@ def _parse_non_contributor_non_proximal_rois(
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     try:
-        data = pd.read_csv(path)  # pyright: ignore[reportUnknownMemberType]
+        data = pd.read_csv(path)
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
-    for _, row in data.iterrows():  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    for _, row in data.iterrows():
         (
             roiId,
             time,
@@ -377,7 +377,7 @@ def _parse_non_contributor_non_proximal_rois(
             trace_partners,
             maybe_nuc_num,
             maybe_id_and_contribs,
-        ) = _parse_nucleus_labeled_record(row)  # pyright: ignore[reportUnknownArgumentType]
+        ) = _parse_nucleus_labeled_record(row)
         roi: NonNuclearRoi | SingletonRoi | MergedRoi
         match (maybe_nuc_num, maybe_id_and_contribs):
             case (None, _):
@@ -420,7 +420,7 @@ def _parse_proximity_rejects(
     path: Path,
 ) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
     try:
-        spot_data = pd.read_csv(path, index_col=None)  # pyright: ignore[reportUnknownMemberType]
+        spot_data = pd.read_csv(path, index_col=None)
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
@@ -433,10 +433,10 @@ def _parse_proximity_rejects_table(
     return [
         (
             record[ROI_ID_COLUMN],
-            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),  # pyright: ignore[reportUnknownArgumentType]
-            *_parse_time_channel_box_trio(record),  # pyright: ignore[reportUnknownArgumentType]
+            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),
+            *_parse_time_channel_box_trio(record),
         )
-        for _, record in rois.iterrows()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+        for _, record in rois.iterrows()
     ]
 
 
@@ -448,8 +448,16 @@ def _parse_neighbors(raw_value: str) -> set[RoiId]:
     raise ValueError(f"Repeated values are present among proximal neighbors: {values}")
 
 
+def _record(row: "pd.Series[Any]") -> Record:
+    """A table's row as a record, keyed by the column names.
+
+    The names are strings, but pandas types the keys of to_dict only as Hashable.
+    """
+    return cast("Record", row.to_dict())
+
+
 def _parse_merge_contributor_record(row: "pd.Series[Any]") -> MergeContributorRoi:
-    record: Record = row.to_dict()  # pyright: ignore[reportUnknownMemberType]
+    record: Record = _record(row)
     index: RoiId = record[ROI_ID_COLUMN]
     merge_column_name = "mergeOutput"
     raw_merge_index = record[merge_column_name]
@@ -484,7 +492,7 @@ def _parse_nucleus_labeled_record(
     Optional[NucleusNumber],
     Optional[IdAndContributors],
 ]:
-    record: Record = row.to_dict()  # pyright: ignore[reportUnknownMemberType]
+    record: Record = _record(row)
 
     roiId: RoiId = record[ROI_ID_COLUMN]
     traceId: TraceIdFrom0 = TraceIdFrom0(record["traceId"])
@@ -547,9 +555,7 @@ def _parse_roi_ids_field(
 def _parse_time_channel_box_trio(
     row: "Record | pd.Series[Any]",
 ) -> tuple[Timepoint, Channel, BoundingBox3D]:
-    record: Record = (
-        row if isinstance(row, dict) else row.to_dict()  # pyright: ignore[reportUnknownMemberType]
-    )
+    record: Record = row if isinstance(row, dict) else _record(row)
     time = record.pop(TIME_COLUMN)
     channel = record.pop(CHANNEL_COLUMN)
     box = BoundingBox3D(

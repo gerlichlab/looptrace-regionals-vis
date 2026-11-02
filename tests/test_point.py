@@ -23,9 +23,9 @@ def test_point_construction_is_keyword_only(coordinates):
         Point3D(z, y, x)  # pyright: ignore[reportCallIssue]
     expected_submessage = "takes 1 positional argument but 4 were given"
     observed_message = str(error_context.value)
-    assert (
-        expected_submessage in observed_message
-    ), f"Did not find expected submessage ('{expected_submessage}') in error message ('{observed_message}')"
+    assert expected_submessage in observed_message, (
+        f"Did not find expected submessage ('{expected_submessage}') in error message ('{observed_message}')"
+    )
 
 
 @hyp.given(
@@ -48,8 +48,10 @@ def test_point_cannot_be_constructed_with_non_float(coordinates):
         st.one_of(legal_float, gen_infinity),
         st.one_of(legal_float, gen_infinity),
     ).filter(
-        lambda coords: any(math.isinf(c) for c in coords)
-        and not any(math.isnan(c) for c in coords)
+        lambda coords: (
+            any(math.isinf(c) for c in coords)
+            and not any(math.isnan(c) for c in coords)
+        )
     )
 )
 def test_point_cannot_be_constructed_with_infinite(coordinates):
@@ -66,8 +68,10 @@ def test_point_cannot_be_constructed_with_infinite(coordinates):
         st.one_of(legal_float, st.just(math.nan)),
         st.one_of(legal_float, st.just(math.nan)),
     ).filter(
-        lambda coords: any(math.isnan(c) for c in coords)
-        and not any(math.isinf(c) for c in coords)
+        lambda coords: (
+            any(math.isnan(c) for c in coords)
+            and not any(math.isinf(c) for c in coords)
+        )
     )
 )
 def test_point_cannot_be_constructed_with_nan(coordinates):

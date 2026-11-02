@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.0] - 2026-11-02
+
+### Added
+* Support for Python 3.13, as gertils v0.8.0 has. CI runs on Python 3.12 and 3.13. The lock moves `numpydoc_decorator` 2.2.1 -> 2.3.0, which allows Python 3.13 where 2.2.1 stopped at 3.12, as gertils locks it.
+
+### Changed
+* Depend on `gertils` v0.8.0, which requires zarr 3.1 or later and numpy 1.26 or later. The plugin reads no zarr data itself; it declares zarr 3.1 or later, where it allowed zarr 2.4.12, since napari's own reader opens the image stores with it.
+See [looptrace issue 579](https://github.com/gerlichlab/looptrace/issues/579), which moves looptrace to zarr 3.
+* Require napari 0.9.2 or later on macOS, where 0.4.19.post1 was allowed too. The zarr reader of napari 0.4.19 cannot open a zarr 3 store, and looptrace's next release moves to napari 0.9.2 with numpy 2, where it kept 0.4.19 while it held numpy below 1.25. The plugin's lock and macOS CI already used 0.9.2.
+* Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do (#30). The package is checked strictly and the tests at the standard level. The line length is 88, ruff's default, where it was 100, as in the other repositories behind looptrace.
+* ruff 0.7.4 -> 0.17.3 and pyright 1.1.411 -> 1.1.414, the newest releases, as in looptrace, gertils and the other plugins. The configuration names the rules that ruff renamed (`TC002`, `TC003`), no longer names those it removed (`ANN101`, `ANN102`), and ignores two that every rule now brings in: a copyright notice in each file (`CPY001`), as the LICENSE covers them all, and `X | None` for `Optional[X]` (`UP045`), which ruff split out of `UP007`, already ignored. pyright 1.1.414 finds nothing new. Five files are reformatted by ruff's newer style.
+
+### Removed
+* Support for Python 3.11. looptrace-regionals-vis requires Python 3.12 or 3.13, as gertils v0.8.0 does, and the newest releases of numpy, zarr and numcodecs. looptrace already requires Python 3.12. The Nix shell uses Python 3.12, the lowest supported, and ruff targets it.
+
 ## [v0.8.0] - 2026-10-13
 
 ### Changed
@@ -12,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Allow napari 0.5 to 0.9 on macOS, as well as 0.4.19.post1, where it was pinned at 0.4.19.post1 since napari 0.9 needs Python 3.11. The plugin's own lock and macOS CI use napari 0.9.2; looptrace, which holds numpy below the 1.25 that napari 0.9 needs, keeps 0.4.19.
 * The Nix shell uses nixpkgs 26.05, with Poetry 2, and `poetry.lock` is in Poetry 2's format.
 * CI installs the newest Poetry, as it already did: the `poetry-version` the workflows set, `1.7.1`, is not an input of the action that installs Poetry, so it had no effect. Each CI job caches its environment separately, per Python.
-* Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do, at the version looptrace locks, 1.1.411 (#30). The package is checked strictly and the tests at the standard level. The line length is 88, ruff's default, where it was 100, as in the other repositories behind looptrace; ruff stays at 0.7.4.
 
 ## [v0.7.0] - 2026-10-07
 
