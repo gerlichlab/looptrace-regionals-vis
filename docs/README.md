@@ -9,7 +9,7 @@ __Nix shell (preferred)__
 
 If you've installed the [Nix package manager](https://nixos.org/download/) installed, then from the this project's [root folder](../), you can simply launch the Nix shell with `nix-shell`, and you should have everything you need ready to go. 
 Note that in general, we use this on Mac machines with relatively new processors. 
-If something doesn't work for you, and especially if you're using this on different hardware, please let us know by opening a ticket on our [issue tracker](https://github.com/gerlichlab/looptrace-loci-vis/issues). 
+If something doesn't work for you, and especially if you're using this on different hardware, please let us know by opening a ticket on our [issue tracker](https://github.com/gerlichlab/looptrace-regionals-vis/issues). 
 Please open a ticket even if you're able to resolve the problem yourself, as it will help us define the environment in a way that's compatible with a wider variety of hardwares.
 If you'd like, you may even open a pull request to suggest an improvement to our environment definition.
 
