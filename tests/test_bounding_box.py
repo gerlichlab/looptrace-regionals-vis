@@ -128,9 +128,9 @@ def test_rectangle_protocol_support(box, api_member, validation_attribute):
     get = getattr(box, api_member)
     obs = get()
     exp = getattr(box, validation_attribute)
-    assert (
-        obs == exp
-    ), f"Expected {exp} (from .{validation_attribute}) but got {obs} (from .{api_member}())"
+    assert obs == exp, (
+        f"Expected {exp} (from .{validation_attribute}) but got {obs} (from .{api_member}())"
+    )
 
 
 @hyp.given(
@@ -183,9 +183,9 @@ def test_iter_z_slices_nonnegative__always_designates_zero_or_one_z_slice_as_cen
         0 if round(box.center.z) < 0 or round(box.center.z) > box.get_zMax() else 1
     )
     num_central_obs = sum(is_center_flags)
-    assert (
-        num_central_obs == num_central_exp
-    ), f"Expected {num_central_exp} central slice(s) but got {num_central_obs}"
+    assert num_central_obs == num_central_exp, (
+        f"Expected {num_central_exp} central slice(s) but got {num_central_obs}"
+    )
 
 
 @hyp.given(box=gen_bbox_legit(min_z=-5, max_z=5))  # smaller z range here for efficiency
@@ -212,9 +212,9 @@ def test_iter_z_slices_nonnegative__slice_count_is_always_one_greater_than_diffe
     """There's one slice produced for each nonnegative integer in [floor(zMin), floor(zMax))."""
     exp_num_slices = max(0, floor(box.zMax) + 1) - max(0, floor(box.zMin))
     obs_num_slices = sum(1 for _ in box.iter_z_slices_nonnegative())
-    assert (
-        obs_num_slices == exp_num_slices
-    ), f"Expected {exp_num_slices} z-slices but got {obs_num_slices} from box {box}"
+    assert obs_num_slices == exp_num_slices, (
+        f"Expected {exp_num_slices} z-slices but got {obs_num_slices} from box {box}"
+    )
 
 
 @hyp.given(box=gen_bbox_legit())
