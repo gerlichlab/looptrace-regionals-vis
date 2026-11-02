@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+* Support for Python 3.13, as gertils v0.8.0 has. CI runs on Python 3.12 and 3.13. The lock moves `numpydoc_decorator` 2.2.1 -> 2.3.0, which allows Python 3.13 where 2.2.1 stopped at 3.12, as gertils locks it.
+
 ### Changed
 * Depend on `gertils` v0.8.0, which requires zarr 3.1 or later and numpy 1.26 or later. The plugin reads no zarr data itself; it declares zarr 3.1 or later, where it allowed zarr 2.4.12, since napari's own reader opens the image stores with it.
 See [looptrace issue 579](https://github.com/gerlichlab/looptrace/issues/579), which moves looptrace to zarr 3.
@@ -14,7 +17,7 @@ See [looptrace issue 579](https://github.com/gerlichlab/looptrace/issues/579), w
 * ruff 0.7.4 -> 0.17.3 and pyright 1.1.411 -> 1.1.414, the newest releases, as in looptrace, gertils and the other plugins. The configuration names the rules that ruff renamed (`TC002`, `TC003`), no longer names those it removed (`ANN101`, `ANN102`), and ignores two that every rule now brings in: a copyright notice in each file (`CPY001`), as the LICENSE covers them all, and `X | None` for `Optional[X]` (`UP045`), which ruff split out of `UP007`, already ignored. pyright 1.1.414 finds nothing new. Five files are reformatted by ruff's newer style.
 
 ### Removed
-* Support for Python 3.11. looptrace-regionals-vis requires Python 3.12, as gertils v0.8.0 does, and the newest releases of numpy, zarr and numcodecs. looptrace already requires Python 3.12. CI and the Nix shell use Python 3.12, and ruff targets it.
+* Support for Python 3.11. looptrace-regionals-vis requires Python 3.12 or 3.13, as gertils v0.8.0 does, and the newest releases of numpy, zarr and numcodecs. looptrace already requires Python 3.12. The Nix shell uses Python 3.12, the lowest supported, and ruff targets it.
 
 ## [v0.8.0] - 2026-10-13
 
