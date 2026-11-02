@@ -31,7 +31,8 @@ gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.8.0" }
 numpy = "*"
 numpydoc_decorator = ">=2.2.1"
 pandas = "*"
-zarr = ">=2.4.12"
+# Not imported here: napari's own reader opens the image stores with it. The range gertils requires.
+zarr = ">=3.1,<4"
 
 # OS-specific dependency declarations
 # From 0.9.2, the release looptrace moves to: the reader of 0.4.19 cannot open zarr 3 stores.

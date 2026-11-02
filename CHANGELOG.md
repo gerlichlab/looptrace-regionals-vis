@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-* Depend on `gertils` v0.8.0, which requires zarr 3. The plugin reads no zarr data itself.
+* Depend on `gertils` v0.8.0, which requires zarr 3.1 or later and numpy 1.26 or later. The plugin reads no zarr data itself; it declares zarr 3.1 or later, where it allowed zarr 2.4.12, since napari's own reader opens the image stores with it.
 See [looptrace issue 579](https://github.com/gerlichlab/looptrace/issues/579), which moves looptrace to zarr 3.
 * Require napari 0.9.2 or later on macOS, where 0.4.19.post1 was allowed too. The zarr reader of napari 0.4.19 cannot open a zarr 3 store, and looptrace's next release moves to napari 0.9.2 with numpy 2, where it kept 0.4.19 while it held numpy below 1.25. The plugin's lock and macOS CI already used 0.9.2.
 * Type-check with `pyright` instead of `mypy`, as gertils and spotfishing do (#30). The package is checked strictly and the tests at the standard level. The line length is 88, ruff's default, where it was 100, as in the other repositories behind looptrace.
