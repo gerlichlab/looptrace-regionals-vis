@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.9.0] - 2026-11-02
 
 ### Added
 * Support for Python 3.13, as gertils v0.8.0 has. CI runs on Python 3.12 and 3.13. The lock moves `numpydoc_decorator` 2.2.1 -> 2.3.0, which allows Python 3.13 where 2.2.1 stopped at 3.12, as gertils locks it.
