@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+* The dependency on numpydoc_decorator, whose newest release allows only Python below 3.14. See [looptrace issue 584](https://github.com/gerlichlab/looptrace/issues/584). Each docstring its `@doc` wrote when a module was imported is now written in the source, so ruff's docstring rules check it and an editor shows it. Where `@doc` expanded a type from an annotation into a long string, or into `UnionType[...]`, which is neither Python nor numpydoc, the docstring names the type alias instead, such as `FloatLike`, `PathOrPaths` or `Reader`, as gertils and the other plugins do. `get_reader`'s docstring says that it reads a folder, where it spoke of a single-file parser, and `find_package_files`' that it lists the files of the resource folder it is given, not only the examples. The type information for numpydoc_decorator in `typings/` goes too, with its exemptions from ruff's rules. numpydoc_decorator stays in the lock until gertils drops it too.
+
 ## [v0.9.0] - 2026-11-02
 
 ### Added

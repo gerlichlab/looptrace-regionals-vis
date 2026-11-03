@@ -9,7 +9,6 @@ from typing import Any, Literal, Optional, cast
 
 import pandas as pd
 from gertils.types import NucleusNumber, TraceIdFrom0
-from numpydoc_decorator import doc
 from pandas.errors import EmptyDataError
 
 from .bounding_box import BoundingBox3D
@@ -84,18 +83,32 @@ class InputFileContentType(Enum):
         return cls.from_filename(fp.name)
 
 
-@doc(
-    summary="The main interface for the napari plugin reader contribution",
-    parameters=dict(path="Path to file with data to visualise"),
-    returns="If the given value can be used by this plugin, a parser function; otherwise, a null value",
-)
 def get_reader(path: PathOrPaths) -> Optional[Reader]:  # noqa: PLR0915
-    """Get a single-file parser with which to build layer data."""
+    """Get a parser with which to build layer data from a folder of tables.
+
+    The main interface for the napari plugin reader contribution. napari calls this
+    with the path it is to open, then calls the parser, if it gets one, with the
+    same path. The parser builds a layer for each kind of ROI in the folder's tables.
+
+    Parameters
+    ----------
+    path : PathOrPaths
+        Path to the folder with data to visualise.
+
+    Returns
+    -------
+    Reader or None
+        A parser for the folder, or None for a sequence of paths, for a path
+        that is no existing folder, such as a single file, and for a folder
+        with more than one table of a kind, or with more than one table of
+        ROIs of no kind the plugin reads.
+
+    """
 
     def do_not_parse(msg: str, *, level: int = logging.DEBUG) -> None:
         logging.log(msg=msg, level=level)
 
-    # Check that the given path is indeed a single extant file.
+    # Check that the given path is indeed a single extant folder.
     if isinstance(path, str):
         path = Path(path)
     if not isinstance(path, Path):
@@ -349,12 +362,20 @@ def _names_rois(filename: str) -> bool:
     return parts[0].endswith("_rois") or parts[1:-1][:1] == ["rois"]
 
 
-@doc(
-    summary="Determine if the given path may be an input file to parse.",
-    parameters=dict(path="Path to test as a plausible input file"),
-    returns="The result of the compound test",
-)
 def _is_plausible_input_file(path: Path) -> bool:
+    """Determine if the given path may be an input file to parse.
+
+    Parameters
+    ----------
+    path : Path
+        Path to test as a plausible input file.
+
+    Returns
+    -------
+    bool
+        The result of the compound test.
+
+    """
     return path.is_file() and path.suffix == ".csv" and _names_rois(path.name)
 
 
@@ -411,14 +432,22 @@ def _parse_non_contributor_non_proximal_rois(
     return rois
 
 
-@doc(
-    summary="Read the data from the given file and parse it into bounding boxes.",
-    parameters=dict(path="Path to data file from which to parse bounding boxes"),
-    returns="List of tuples of ID, neighbors, time, channel, and bounding box.",
-)
 def _parse_proximity_rejects(
     path: Path,
 ) -> list[tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]]:
+    """Read the data from the given file and parse it into bounding boxes.
+
+    Parameters
+    ----------
+    path : Path
+        Path to data file from which to parse bounding boxes.
+
+    Returns
+    -------
+    list of tuple[RoiId, set[RoiId], Timepoint, Channel, BoundingBox3D]
+        List of tuples of ID, neighbors, time, channel, and bounding box.
+
+    """
     try:
         spot_data = pd.read_csv(path, index_col=None)
     except EmptyDataError:
@@ -570,10 +599,18 @@ def _parse_time_channel_box_trio(
     return time, channel, box
 
 
-@doc(
-    summary="Flatten point coordinates to list",
-    parameters=dict(pt="Point to flatten"),
-    returns="[z, y, x]",
-)
 def _point_to_list(pt: Point3D) -> list[FloatLike]:
+    """Flatten point coordinates to list.
+
+    Parameters
+    ----------
+    pt : Point3D
+        Point to flatten.
+
+    Returns
+    -------
+    list of FloatLike
+        [z, y, x].
+
+    """
     return [pt.z, pt.y, pt.x]

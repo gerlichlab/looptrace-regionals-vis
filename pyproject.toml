@@ -30,7 +30,6 @@ looptrace-regionals-vis = "looptrace_regionals_vis:napari.yaml"
 python = ">=3.12,<3.14"
 gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.8.0" }
 numpy = "*"
-numpydoc_decorator = ">=2.2.1"
 pandas = "*"
 # Not imported here: napari's own reader opens the image stores with it. The range gertils requires.
 zarr = ">=3.1,<4"
@@ -157,11 +156,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"typings/*" = [
-    # Stubs copy the signatures of third-party code, which we can't change.
-    "FBT001",  # Boolean-typed positional argument in function definition
-    "FBT002",  # Boolean default positional argument in function definition
-]
 "tests/*" = [
     # Ignore some groups of checks in our test code.
     "ANN",  # Type annotations
