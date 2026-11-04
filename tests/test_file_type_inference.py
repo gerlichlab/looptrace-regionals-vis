@@ -7,22 +7,26 @@ from typing import Optional
 import hypothesis as hyp
 import pytest
 from hypothesis import strategies as st
-from numpydoc_decorator import doc
 
 from looptrace_regionals_vis import find_package_files
 from looptrace_regionals_vis.reader import InputFileContentType
 
 
-@doc(
-    summary="Bundle filename suffix, extension, and expected inference of processing status",
-    parameters=dict(
-        suffix="Part of the filename just before the extension",
-        extension="The extension to use for the filename/filepath",
-        expectation="The expected inferred processing status (if on's expected)",
-    ),
-)
 @dataclass(kw_only=True, frozen=True)
 class FileTypeInferenceParameterization:
+    """Bundle filename suffix, extension, and expected inference of processing status.
+
+    Parameters
+    ----------
+    suffix : str
+        Part of the filename just before the extension.
+    extension : str
+        The extension to use for the filename/filepath.
+    expectation : InputFileContentType or None
+        The expected inferred processing status (if one's expected).
+
+    """
+
     suffix: str
     extension: str
     expectation: Optional[InputFileContentType]

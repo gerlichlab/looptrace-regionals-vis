@@ -3,17 +3,24 @@
 import dataclasses
 import math
 
-from numpydoc_decorator import doc
-
 from .types import FloatLike
 
 
-@doc(
-    summary="Bundle three values as coordinates of point in 3D",
-    parameters=dict(z="z", y="y", x="x"),
-)
 @dataclasses.dataclass(kw_only=True, frozen=True)
-class Point3D:  # noqa: D101
+class Point3D:
+    """Bundle three values as coordinates of point in 3D.
+
+    Parameters
+    ----------
+    z : FloatLike
+        Coordinate in z.
+    y : FloatLike
+        Coordinate in y.
+    x : FloatLike
+        Coordinate in x.
+
+    """
+
     z: FloatLike
     y: FloatLike
     x: FloatLike

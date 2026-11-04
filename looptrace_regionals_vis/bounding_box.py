@@ -7,8 +7,6 @@ from functools import cached_property
 from math import floor
 from typing import Protocol
 
-from numpydoc_decorator import doc
-
 from .point import Point3D
 from .types import FloatLike
 
@@ -51,20 +49,29 @@ class RectangularPrismLike(RectangleLike):
         raise NotImplementedError  # pragma: no cover
 
 
-@doc(
-    summary="A rectangular prism in 3D",
-    parameters=dict(
-        center="3D center point",
-        zMin="Lower bound in z",
-        zMax="Upper bound in z",
-        yMin="Lower bound in y",
-        yMax="Upper bound in y",
-        xMin="Lower bound in x",
-        xMax="Upper bound in x",
-    ),
-)
 @dataclasses.dataclass(frozen=True, kw_only=True)
-class BoundingBox3D(RectangularPrismLike):  # noqa: D101
+class BoundingBox3D(RectangularPrismLike):
+    """A rectangular prism in 3D.
+
+    Parameters
+    ----------
+    center : Point3D
+        3D center point.
+    zMin : float
+        Lower bound in z.
+    zMax : float
+        Upper bound in z.
+    yMin : float
+        Lower bound in y.
+    yMax : float
+        Upper bound in y.
+    xMin : float
+        Lower bound in x.
+    xMax : float
+        Upper bound in x.
+
+    """
+
     center: Point3D
     zMin: float
     zMax: float
@@ -98,28 +105,64 @@ class BoundingBox3D(RectangularPrismLike):  # noqa: D101
             xMax=xMax,
         )
 
-    @doc(summary="Left side in x dimension")
-    def get_xMin(self) -> float:  # noqa: D102
+    def get_xMin(self) -> float:
+        """Left side in x dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.xMin
 
-    @doc(summary="Right side in x dimension")
-    def get_xMax(self) -> float:  # noqa: D102
+    def get_xMax(self) -> float:
+        """Right side in x dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.xMax
 
-    @doc(summary="Left side in y dimension")
-    def get_yMin(self) -> float:  # noqa: D102
+    def get_yMin(self) -> float:
+        """Left side in y dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.yMin
 
-    @doc(summary="Right side in y dimension")
-    def get_yMax(self) -> float:  # noqa: D102
+    def get_yMax(self) -> float:
+        """Right side in y dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.yMax
 
-    @doc(summary="Left side in z dimension")
-    def get_zMin(self) -> float:  # noqa: D102
+    def get_zMin(self) -> float:
+        """Left side in z dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.zMin
 
-    @doc(summary="Right side in z dimension")
-    def get_zMax(self) -> float:  # noqa: D102
+    def get_zMax(self) -> float:
+        """Right side in z dimension.
+
+        Returns
+        -------
+        float
+
+        """
         return self.zMax
 
     def __post_init__(self) -> None:

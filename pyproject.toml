@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "looptrace-regionals-vis"
-version = "0.9.0"
+version = "0.10.0"
 description = "This project facilitates viewing, in `napari`, regional spots from `looptrace`."
 authors = ["Vince Reuter"]
 license = "MIT"
@@ -15,6 +15,7 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
   "Typing :: Typed",
 ]
@@ -27,17 +28,16 @@ build-backend = "poetry.core.masonry.api"
 looptrace-regionals-vis = "looptrace_regionals_vis:napari.yaml"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.14"
-gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.8.0" }
+python = ">=3.12,<3.15"
+gertils = { git = "https://github.com/gerlichlab/gertils.git", tag = "v0.9.0" }
 numpy = "*"
-numpydoc_decorator = ">=2.2.1"
 pandas = "*"
 # Not imported here: napari's own reader opens the image stores with it. The range gertils requires.
 zarr = ">=3.1,<4"
 
 # OS-specific dependency declarations
 # From 0.9.2, the release looptrace moves to: the reader of 0.4.19 cannot open zarr 3 stores.
-napari = { version = ">=0.9.2,<0.10", markers = "sys_platform == 'darwin'" }
+napari = { version = ">=0.9.2,<0.11", markers = "sys_platform == 'darwin'" }
 pyqt6 = { version = ">=6.5.0", markers = "sys_platform == 'darwin'" }
 
 [tool.poetry.group.coverage]
@@ -157,11 +157,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"typings/*" = [
-    # Stubs copy the signatures of third-party code, which we can't change.
-    "FBT001",  # Boolean-typed positional argument in function definition
-    "FBT002",  # Boolean default positional argument in function definition
-]
 "tests/*" = [
     # Ignore some groups of checks in our test code.
     "ANN",  # Type annotations
