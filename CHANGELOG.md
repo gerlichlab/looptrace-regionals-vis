@@ -6,8 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+* Support for Python 3.14, as gertils v0.9.0 has. CI runs on Python 3.12, 3.13 and 3.14.
+* Support for napari 0.10 on macOS: the plugin allows napari 0.9.2 to 0.10. In napari 0.10, the example folder opens with all five layers of ROIs, on Python 3.12 and 3.14.
+
+### Changed
+* Depend on `gertils` v0.9.0, which no longer depends on numpydoc_decorator and allows Python 3.14.
+* The lock is updated to the newest releases, among them napari 0.10.0, npe2 0.10.1 and PyQt6 6.12.
+
 ### Removed
-* The dependency on numpydoc_decorator, whose newest release allows only Python below 3.14. See [looptrace issue 584](https://github.com/gerlichlab/looptrace/issues/584). Each docstring its `@doc` wrote when a module was imported is now written in the source, so ruff's docstring rules check it and an editor shows it. Where `@doc` expanded a type from an annotation into a long string, or into `UnionType[...]`, which is neither Python nor numpydoc, the docstring names the type alias instead, such as `FloatLike`, `PathOrPaths` or `Reader`, as gertils and the other plugins do. `get_reader`'s docstring says that it reads a folder, where it spoke of a single-file parser, and `find_package_files`' that it lists the files of the resource folder it is given, not only the examples. The type information for numpydoc_decorator in `typings/` goes too, with its exemptions from ruff's rules. numpydoc_decorator stays in the lock until gertils drops it too.
+* The dependency on numpydoc_decorator, whose newest release allows only Python below 3.14. See [looptrace issue 584](https://github.com/gerlichlab/looptrace/issues/584). Each docstring its `@doc` wrote when a module was imported is now written in the source, so ruff's docstring rules check it and an editor shows it. Where `@doc` expanded a type from an annotation into a long string, or into `UnionType[...]`, which is neither Python nor numpydoc, the docstring names the type alias instead, such as `FloatLike`, `PathOrPaths` or `Reader`, as gertils and the other plugins do. `get_reader`'s docstring says that it reads a folder, where it spoke of a single-file parser, and `find_package_files`' that it lists the files of the resource folder it is given, not only the examples. The type information for numpydoc_decorator in `typings/` goes too, with its exemptions from ruff's rules. With gertils v0.9.0, which drops it too, it leaves the lock.
 
 ## [v0.9.0] - 2026-11-02
 
