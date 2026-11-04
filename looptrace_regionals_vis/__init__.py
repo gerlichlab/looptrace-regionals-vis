@@ -4,7 +4,7 @@ import importlib.resources as importlib_resources
 from pathlib import Path
 from typing import cast
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 _PACKAGE_NAME = package = Path(__file__).parent.name
 
