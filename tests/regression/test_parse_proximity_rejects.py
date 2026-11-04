@@ -26,3 +26,24 @@ def test_parse_succeeds_when_all_records_have_single_roi_proximal(tmp_path) -> N
     expected: list[set[RoiId]] = [{i} for i in [1812, 1816, 1823, 1831, 2012]]
     observed: list[set[RoiId]] = [r[1] for r in initial_result]
     assert observed == expected
+
+
+def test_parse_keeps_integers_when_no_column_is_text(tmp_path) -> None:
+    """Without a column of text, such as fieldOfView, pandas gives each row's values as floats; the IDs, timepoint and channel must still be integers."""
+    lines = """index,timepoint,spotChannel,zc,yc,xc,zMin,zMax,yMin,yMax,xMin,xMax,tooCloseRois
+0,16,0,13.019719,47.112637,2745.086570,7.019719,19.019719,35.112637,59.112637,2733.086570,2757.086570,1812
+1,16,0,12.882916,128.017592,3067.997290,6.882916,18.882916,116.017592,140.017592,3055.997290,3079.997290,1816
+"""
+    rois_file: Path = tmp_path / "tmp.csv"
+    rois_file.write_text(lines)
+    parsed = _parse_proximity_rejects(rois_file)
+    observed = [
+        (roi_id, neighbors, timepoint, channel)
+        for roi_id, neighbors, timepoint, channel, _ in parsed
+    ]
+    assert observed == [(0, {1812}, 16, 0), (1, {1816}, 16, 0)]
+    assert all(
+        type(value) is int
+        for roi_id, _, timepoint, channel in observed
+        for value in (roi_id, timepoint, channel)
+    )

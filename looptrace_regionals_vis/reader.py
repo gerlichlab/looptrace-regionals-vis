@@ -384,7 +384,9 @@ def _parse_non_contributor_non_proximal_rois(
 ) -> list[NonNuclearRoi | SingletonRoi | MergedRoi]:
     rois: list[NonNuclearRoi | SingletonRoi | MergedRoi] = []
     try:
-        data = pd.read_csv(path)
+        # Each lists ROI IDs, separated by spaces. Read as numbers, a column of single
+        # IDs and blanks, as when no trace has more than two ROIs, would be floats.
+        data = pd.read_csv(path, dtype={"neighbors": str, "tracePartners": str})
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
@@ -449,7 +451,11 @@ def _parse_proximity_rejects(
 
     """
     try:
-        spot_data = pd.read_csv(path, index_col=None)
+        # tooCloseRois lists ROI IDs, so it's read as text: with no column of text,
+        # pandas would give each row's values as floats, the IDs and timepoint too.
+        spot_data = pd.read_csv(
+            path, index_col=None, dtype={TOO_CLOSE_ROIS_COLUMN: str}
+        )
     except EmptyDataError:
         logging.warning("Empty data file: %s", path)
         return []
@@ -462,7 +468,7 @@ def _parse_proximity_rejects_table(
     return [
         (
             record[ROI_ID_COLUMN],
-            _parse_neighbors(str(record[TOO_CLOSE_ROIS_COLUMN])),
+            _parse_neighbors(record[TOO_CLOSE_ROIS_COLUMN]),
             *_parse_time_channel_box_trio(record),
         )
         for _, record in rois.iterrows()
@@ -585,8 +591,8 @@ def _parse_time_channel_box_trio(
     row: "Record | pd.Series[Any]",
 ) -> tuple[Timepoint, Channel, BoundingBox3D]:
     record: Record = row if isinstance(row, dict) else _record(row)
-    time = record.pop(TIME_COLUMN)
-    channel = record.pop(CHANNEL_COLUMN)
+    time = record[TIME_COLUMN]
+    channel = record[CHANNEL_COLUMN]
     box = BoundingBox3D(
         center=Point3D(z=record["zc"], y=record["yc"], x=record["xc"]),
         zMin=record["zMin"],
