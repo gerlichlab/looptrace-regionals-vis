@@ -11,11 +11,25 @@ from hypothesis import strategies as st
 import looptrace_regionals_vis
 from looptrace_regionals_vis import find_package_files
 
+# Windows reserves these names, in any case, for devices: a path ending in one
+# is a device, not a missing folder, and asking for it fails differently.
+_WINDOWS_DEVICE_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+
 gen_non_extant_resource_folder = st.text(
     alphabet=string.ascii_letters + string.digits + "_-"
 ).filter(
     lambda sub: (
-        not importlib_resources.files(looptrace_regionals_vis).joinpath(sub).is_dir()
+        sub.upper() not in _WINDOWS_DEVICE_NAMES
+        and not importlib_resources.files(looptrace_regionals_vis)
+        .joinpath(sub)
+        .is_dir()
     )
 )
 
